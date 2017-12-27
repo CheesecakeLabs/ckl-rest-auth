@@ -18,10 +18,6 @@ setup(
     url='https://github.com/CheesecakeLabs/ckl-rest-auth',
     author='Cheesecake Labs',
 
-    packages=[
-        'cklauth'
-    ],
-
     install_requires=[
         'Django == 2.0',
         'djangorestframework == 3.7.3'
