@@ -46,7 +46,7 @@ class TestRegisterEndpoint:
         content = json.loads(request.content)
 
         assert request.status_code == status.HTTP_400_BAD_REQUEST
-        assert content['message'] == {'password': ['This field is required.']}
+        assert content == {'password': ['This field is required.']}
 
     def test_register_username_already_registered(self):
         user = User.objects.create_user(
@@ -68,5 +68,5 @@ class TestRegisterEndpoint:
         content = json.loads(request.content)
 
         assert request.status_code == status.HTTP_400_BAD_REQUEST
-        assert content['message'] == {'username': ['This username is already in use.']}
+        assert content == {'username': ['This username is already in use.']}
 
