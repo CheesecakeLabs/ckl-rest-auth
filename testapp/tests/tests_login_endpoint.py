@@ -41,7 +41,7 @@ class TestLoginEndpoint:
         content = json.loads(request.content)
 
         assert request.status_code == status.HTTP_400_BAD_REQUEST
-        assert content['message'] == {'password': ['This field is required.']}
+        assert content == {'password': ['This field is required.']}
 
     def test_login_wrong_password(self):
         token = self._create_user_token('username', 'password')

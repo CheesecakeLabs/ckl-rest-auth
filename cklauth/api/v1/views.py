@@ -16,27 +16,22 @@ def register(request):
 
 @api_view(['POST',])
 def login(request):
-    data = JSONParser().parse(request)
-    serializer = LoginSerializer(data=data)
+    serializer = LoginSerializer(data=request.data)
 
-    if serializer.is_valid():
-        user = authenticate(
-            username=serializer.data['username'],
-            password=serializer.data['password']
-        )
+    serializer.is_valid(raise_exception=True)
+    user = authenticate(
+        username=serializer.data['username'],
+        password=serializer.data['password']
+    )
 
-        if user:
-            token = Token.objects.get(user=user)
+    if user:
+        token = Token.objects.get(user=user)
 
-            return JsonResponse({
-                'token': token.key
-            }, status=status.HTTP_200_OK)
-        else:
-            return JsonResponse({
-                'message': 'Wrong credentials.'
-            }, status=status.HTTP_401_UNAUTHORIZED)
+        return JsonResponse({
+            'token': token.key
+        }, status=status.HTTP_200_OK)
 
     return JsonResponse({
-        'message': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+        'message': 'Wrong credentials.'
+    }, status=status.HTTP_401_UNAUTHORIZED)
 
