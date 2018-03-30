@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import reverse
+from django.utils.html import format_html
 
 from . import models
 
@@ -24,9 +25,9 @@ class SocialAccountAdmin(admin.ModelAdmin):
     def user_(self, instance):
         if not instance.user:
             return '-'
-        return '<a href="{0}">{1}</a>'.format(
+        return format_html('<a href="{0}">{1}</a>'.format(
             reverse('admin:auth_user_change', args=[instance.user.id]),
             instance.user.username or instance.user.id
-        )
+        ))
 
     user_.allow_tags = True
