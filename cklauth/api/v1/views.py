@@ -2,6 +2,7 @@ import json
 import requests
 
 from django.http import JsonResponse
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.shortcuts import redirect
@@ -12,27 +13,10 @@ from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
 from .serializers import RegisterSerializer, LoginSerializer
+from cklauth import constants
 from cklauth.models import SocialAccount
 
 from .serializers import RegisterSerializer
-
-# Settings
-GOOGLE_CLIENT_ID = 'something'
-GOOGLE_CLIENT_SECRET = 'something'
-GOOGLE_REDIRECT_URI = 'something'
-###
-GOOGLE_TOKEN_URL = 'https://accounts.google.com/o/oauth2/token'
-GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
-GOOGLE_USER_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
-
-# Settings
-FACEBOOK_CLIENT_ID = 'something'
-FACEBOOK_CLIENT_SECRET = 'something'
-FACEBOOK_REDIRECT_URI = 'something'
-###
-FACEBOOK_TOKEN_URL = 'https://graph.facebook.com/oauth/access_token'
-FACEBOOK_AUTH_URL = 'https://www.facebook.com/v2.12/dialog/oauth?'
-FACEBOOK_USER_URL = 'https://graph.facebook.com/v2.11/me'
 
 
 @api_view(['POST',])
@@ -72,21 +56,17 @@ def login(request):
 class GoogleAuthView(APIView):
     permission_classes = []
 
-    AUTH_URL = GOOGLE_AUTH_URL
-    TOKEN_URL = GOOGLE_TOKEN_URL
-    USER_URL = GOOGLE_USER_URL
-
     def get(self, request, format=None):
         # Check link below to retrieve info wanted
         # https://developers.google.com/gmail/api/auth/scopes
         payload = {
             'response_type': 'code',
-            'client_id': GOOGLE_CLIENT_ID,
-            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'client_id': settings.GOOGLE_CLIENT_ID,
+            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
             'scope': 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
             'state': json.dumps(request.query_params),
         }
-        request = requests.Request('GET', self.AUTH_URL, params=payload).prepare()
+        request = requests.Request('GET', constants.GOOGLE_AUTH_URL, params=payload).prepare()
         return redirect(request.url)
 
     def post(self, request):
@@ -96,14 +76,14 @@ class GoogleAuthView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         payload = {
-            'client_id': GOOGLE_CLIENT_ID,
-            'client_secret': GOOGLE_CLIENT_SECRET,
+            'client_id': settings.GOOGLE_CLIENT_ID,
+            'client_secret': settings.GOOGLE_CLIENT_SECRET,
             'grant_type': 'authorization_code',
-            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
             'code': request.data['code'],
         }
 
-        response = requests.post(self.TOKEN_URL, data=payload)
+        response = requests.post(constants.GOOGLE_TOKEN_URL, data=payload)
 
         if response.status_code != status.HTTP_200_OK:
             return JsonResponse({
@@ -112,7 +92,7 @@ class GoogleAuthView(APIView):
 
         access_token = response.json()['access_token']
 
-        response = requests.get(self.USER_URL, headers={
+        response = requests.get(constants.GOOGLE_USER_URL, headers={
             'Authorization': 'Bearer %s' % access_token})
 
         if response.status_code != status.HTTP_200_OK:
@@ -154,6 +134,10 @@ class GoogleAuthView(APIView):
                     user=user,
                     google_id=data.get('id')
                 )
+                token = Token.objects.create(user=user)
+                return JsonResponse({
+                    'token': token.key
+                }, status=status.HTTP_201_CREATED)
 
         token = Token.objects.get(user=user)
         return JsonResponse({
@@ -164,10 +148,6 @@ class GoogleAuthView(APIView):
 # https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow
 class FacebookAuthView(APIView):
     permission_classes = []
-
-    AUTH_URL = FACEBOOK_AUTH_URL
-    TOKEN_URL = FACEBOOK_TOKEN_URL
-    USER_URL = FACEBOOK_USER_URL
 
     def get_username(self, username, first_name, last_name, count=0):
         user = User.objects.get(username=username)
@@ -184,12 +164,12 @@ class FacebookAuthView(APIView):
     def get(self, request, format=None):
         payload = {
             'response_type': 'code',
-            'client_id': FACEBOOK_CLIENT_ID,
-            'redirect_uri': FACEBOOK_REDIRECT_URI,
+            'client_id': settings.FACEBOOK_CLIENT_ID,
+            'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
             'state': json.dumps(request.query_params),
             'scope': 'email',
         }
-        request = requests.Request('GET', self.AUTH_URL, params=payload).prepare()
+        request = requests.Request('GET', constants.FACEBOOK_AUTH_URL, params=payload).prepare()
         return redirect(request.url)
 
     def post(self, request):
@@ -199,14 +179,14 @@ class FacebookAuthView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         payload = {
-            'client_id': FACEBOOK_CLIENT_ID,
-            'client_secret': FACEBOOK_CLIENT_SECRET,
+            'client_id': settings.FACEBOOK_CLIENT_ID,
+            'client_secret': settings.FACEBOOK_CLIENT_SECRET,
             'grant_type': 'authorization_code',
-            'redirect_uri': FACEBOOK_REDIRECT_URI,
+            'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
             'code': request.data['code'],
         }
 
-        response = requests.post(self.TOKEN_URL, data=payload)
+        response = requests.post(constants.FACEBOOK_TOKEN_URL, data=payload)
 
         if response.status_code != status.HTTP_200_OK:
             return JsonResponse({
@@ -215,7 +195,7 @@ class FacebookAuthView(APIView):
 
         access_token = response.json()['access_token']
 
-        response = requests.get(self.USER_URL, headers={
+        response = requests.get(constants.FACEBOOK_USER_URL, headers={
             'Authorization': 'Bearer %s' % access_token}, params={'fields': {'email', 'first_name', 'last_name'}})
 
         if response.status_code != status.HTTP_200_OK:
@@ -257,6 +237,10 @@ class FacebookAuthView(APIView):
                     user=user,
                     google_id=data.get('id')
                 )
+                token = Token.objects.create(user=user)
+                return JsonResponse({
+                    'token': token.key
+                }, status=status.HTTP_201_CREATED)
 
         token = Token.objects.get(user=user)
         return JsonResponse({
@@ -264,13 +248,14 @@ class FacebookAuthView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-def get_username(username, current_username=None, count=0):
-    user = User.objects.get(username=username)
-    if user:
+def get_username(username, count=0):
+    try:
+        User.objects.get(username=username)
         count = count + 1
         current_username = '{0}_{1}'.format(
             username,
             count
         )
-        get_username(username=username, current_username=current_username, count=count)
-    return current_username
+        get_username(username=current_username, count=count)
+    except User.DoesNotExist:
+        return username
