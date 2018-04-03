@@ -93,7 +93,8 @@ class GoogleAuthView(APIView):
         access_token = response.json()['access_token']
 
         response = requests.get(constants.GOOGLE_USER_URL, headers={
-            'Authorization': 'Bearer %s' % access_token})
+            'Authorization': 'Bearer %s' % access_token
+        })
 
         if response.status_code != status.HTTP_200_OK:
             return JsonResponse({
@@ -149,18 +150,6 @@ class GoogleAuthView(APIView):
 class FacebookAuthView(APIView):
     permission_classes = []
 
-    def get_username(self, username, first_name, last_name, count=0):
-        user = User.objects.get(username=username)
-        if user:
-            count = count + 1
-            username = '{0}_{1}_{2}'.format(
-                first_name.lower(),
-                last_name.lower(),
-                count
-            )
-            self.get_username(username=username, first_name=first_name, last_name=last_name, count=count)
-        return username
-
     def get(self, request, format=None):
         payload = {
             'response_type': 'code',
@@ -196,7 +185,10 @@ class FacebookAuthView(APIView):
         access_token = response.json()['access_token']
 
         response = requests.get(constants.FACEBOOK_USER_URL, headers={
-            'Authorization': 'Bearer %s' % access_token}, params={'fields': {'email', 'first_name', 'last_name'}})
+            'Authorization': 'Bearer %s' % access_token
+        }, params={
+            'fields': {'email', 'first_name', 'last_name'}
+        })
 
         if response.status_code != status.HTTP_200_OK:
             return JsonResponse({
@@ -209,8 +201,8 @@ class FacebookAuthView(APIView):
             # email registered with social account
             social_account = SocialAccount.objects.get(user__email=data.get('email'))
             user = social_account.user
-            if not social_account.google_id:
-                social_account.google_id = data.get('id')
+            if not social_account.facebook_id:
+                social_account.facebook_id = data.get('id')
                 social_account.save()
         except SocialAccount.DoesNotExist:
             try:
@@ -235,7 +227,7 @@ class FacebookAuthView(APIView):
                 )
                 SocialAccount.objects.create(
                     user=user,
-                    google_id=data.get('id')
+                    facebook_id=data.get('id')
                 )
                 token = Token.objects.create(user=user)
                 return JsonResponse({
