@@ -246,14 +246,16 @@ class FacebookAuthView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-def get_username(username, count=0):
+def get_username(username, current_username=None, count=0):
+    if count == 0:
+        current_username = username
     try:
-        User.objects.get(username=username)
+        User.objects.get(username=current_username)
         count = count + 1
         current_username = '{0}_{1}'.format(
             username,
             count
         )
-        get_username(username=current_username, count=count)
+        get_username(username=username, current_username=current_username, count=count)
     except User.DoesNotExist:
-        return username
+        return current_username
