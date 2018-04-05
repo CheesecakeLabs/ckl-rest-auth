@@ -70,27 +70,30 @@ class GoogleAuthView(APIView):
         return redirect(request.url)
 
     def post(self, request):
-        if not request.data.get('code'):
-            return JsonResponse({
-                'message': 'Missing auth token'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if not request.data.get('access_token'):
+            if not request.data.get('code'):
+                return JsonResponse({
+                    'message': 'Missing auth token'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        payload = {
-            'client_id': settings.GOOGLE_CLIENT_ID,
-            'client_secret': settings.GOOGLE_CLIENT_SECRET,
-            'grant_type': 'authorization_code',
-            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
-            'code': request.data['code'],
-        }
+            payload = {
+                'client_id': settings.GOOGLE_CLIENT_ID,
+                'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                'grant_type': 'authorization_code',
+                'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                'code': request.data['code'],
+            }
 
-        response = requests.post(constants.GOOGLE_TOKEN_URL, data=payload)
+            response = requests.post(constants.GOOGLE_TOKEN_URL, data=payload)
 
-        if response.status_code != status.HTTP_200_OK:
-            return JsonResponse({
-                'message': 'Google bad token'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            if response.status_code != status.HTTP_200_OK:
+                return JsonResponse({
+                    'message': 'Google bad token'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        access_token = response.json()['access_token']
+            access_token = response.json()['access_token']
+        else:
+            access_token = request.data.get('access_token')
 
         response = requests.get(constants.GOOGLE_USER_URL, headers={
             'Authorization': 'Bearer %s' % access_token
@@ -162,27 +165,30 @@ class FacebookAuthView(APIView):
         return redirect(request.url)
 
     def post(self, request):
-        if not request.data.get('code'):
-            return JsonResponse({
-                'message': 'Missing auth token'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if not request.data.get('access_token'):
+            if not request.data.get('code'):
+                return JsonResponse({
+                    'message': 'Missing auth token'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        payload = {
-            'client_id': settings.FACEBOOK_CLIENT_ID,
-            'client_secret': settings.FACEBOOK_CLIENT_SECRET,
-            'grant_type': 'authorization_code',
-            'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
-            'code': request.data['code'],
-        }
+            payload = {
+                'client_id': settings.FACEBOOK_CLIENT_ID,
+                'client_secret': settings.FACEBOOK_CLIENT_SECRET,
+                'grant_type': 'authorization_code',
+                'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
+                'code': request.data['code'],
+            }
 
-        response = requests.post(constants.FACEBOOK_TOKEN_URL, data=payload)
+            response = requests.post(constants.FACEBOOK_TOKEN_URL, data=payload)
 
-        if response.status_code != status.HTTP_200_OK:
-            return JsonResponse({
-                'message': 'Facebook bad token'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            if response.status_code != status.HTTP_200_OK:
+                return JsonResponse({
+                    'message': 'Facebook bad token'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        access_token = response.json()['access_token']
+            access_token = response.json()['access_token']
+        else:
+            access_token = request.data.get('access_token')
 
         response = requests.get(constants.FACEBOOK_USER_URL, headers={
             'Authorization': 'Bearer %s' % access_token
