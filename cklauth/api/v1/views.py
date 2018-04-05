@@ -193,7 +193,7 @@ class FacebookAuthView(APIView):
         response = requests.get(constants.FACEBOOK_USER_URL, headers={
             'Authorization': 'Bearer %s' % access_token
         }, params={
-            'fields': {'email', 'first_name', 'last_name'}
+            'fields': {'email,first_name,last_name'}
         })
 
         if response.status_code != status.HTTP_200_OK:
