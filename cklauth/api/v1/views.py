@@ -256,6 +256,6 @@ def get_username(username, current_username=None, count=0):
             username,
             count
         )
-        get_username(username=username, current_username=current_username, count=count)
+        return get_username(username=username, current_username=current_username, count=count)
     except User.DoesNotExist:
         return current_username
