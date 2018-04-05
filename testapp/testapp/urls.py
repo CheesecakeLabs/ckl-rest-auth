@@ -16,8 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from testapp.views import get_authenticated_dogs
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('dogs/', get_authenticated_dogs),
     path('auth/', include('cklauth.urls'))
 ]
