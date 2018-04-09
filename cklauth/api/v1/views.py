@@ -1,15 +1,13 @@
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from rest_framework import status
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
+from django.contrib.auth.forms import PasswordResetForm
 
-from .serializers import RegisterSerializer, LoginSerializer
-
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, LoginSerializer, PasswordResetSerializer
 
 
 @api_view(['POST',])
@@ -44,3 +42,20 @@ def login(request):
     return JsonResponse({
         'message': 'Wrong credentials.'
     }, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST',])
+def password_reset(request):
+    serializer = PasswordResetSerializer(data=request.data)
+
+    serializer.is_valid(raise_exception=True)
+
+    form = PasswordResetForm({'email': request.data['email']})
+
+    if form.is_valid():
+        form.save(from_email='noreply@ckl.io', email_template_name='registration/password_reset_email.html', request=request)
+
+    return JsonResponse({
+        'message': 'Ok.',
+    }, status=status.HTTP_200_OK)
+

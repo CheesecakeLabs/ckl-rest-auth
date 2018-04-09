@@ -46,3 +46,8 @@ class LoginSerializer(serializers.ModelSerializer):
             'username',
             'password'
         )
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
