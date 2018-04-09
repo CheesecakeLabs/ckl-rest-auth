@@ -1,11 +1,11 @@
 import json
+
+import pytest
 from django.test import Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-
-import pytest
 
 
 @pytest.mark.django_db(transaction=True)
