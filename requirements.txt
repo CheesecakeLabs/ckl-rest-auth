@@ -9,3 +9,4 @@ pytz==2017.3
 six==1.11.0
 django-cors-headers==2.1.0
 requests==2.18.4
+mock==2.0.0

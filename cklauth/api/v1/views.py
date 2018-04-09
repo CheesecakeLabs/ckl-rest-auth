@@ -3,8 +3,7 @@ import requests
 
 from django.http import JsonResponse
 from django.conf import settings
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import redirect
 from rest_framework.parsers import JSONParser
 from rest_framework import status
@@ -18,10 +17,19 @@ from cklauth.models import SocialAccount
 
 from .serializers import RegisterSerializer
 
+User = get_user_model()
+
 
 @api_view(['POST',])
 def register(request):
-    serializer = RegisterSerializer(data=request.data)
+    fields = []
+    for key in request.data.keys():
+        fields.append(key)
+    if 'password' not in fields:
+        return JsonResponse({
+            'password': ['This field is required.']
+        }, status=status.HTTP_400_BAD_REQUEST)
+    serializer = RegisterSerializer(data=request.data, fields=fields)
 
     serializer.is_valid(raise_exception=True)
     serializer.save()
@@ -33,13 +41,13 @@ def register(request):
 
 @api_view(['POST',])
 def login(request):
-    serializer = LoginSerializer(data=request.data)
+    fields = [settings.CKL_REST_AUTH, 'password']
+    serializer = LoginSerializer(data=request.data, fields=fields)
 
     serializer.is_valid(raise_exception=True)
-    user = authenticate(
-        username=serializer.data['username'],
-        password=serializer.data['password']
-    )
+    username = serializer.validated_data[settings.CKL_REST_AUTH]
+    password = serializer.validated_data['password']
+    user = authenticate(username=username, password=password)
 
     if user:
         token = Token.objects.get(user=user)
@@ -124,8 +132,8 @@ class GoogleAuthView(APIView):
                 # user and social account don't exist
                 username = get_username(
                     username='{0}_{1}'.format(
-                        data.get('given_name').lower(),
-                        data.get('family_name').lower()
+                        data.get('given_name').lower().replace(" ", "_"),
+                        data.get('family_name').lower().replace(" ", "_")
                     )
                 )
                 user = User.objects.create_user(
@@ -221,8 +229,8 @@ class FacebookAuthView(APIView):
                 # user and social account don't exist
                 username = get_username(
                     username='{0}_{1}'.format(
-                        data.get('first_name').lower(),
-                        data.get('last_name').lower()
+                        data.get('first_name').lower().replace(" ", "_"),
+                        data.get('last_name').lower().replace(" ", "_")
                     )
                 )
                 user = User.objects.create_user(

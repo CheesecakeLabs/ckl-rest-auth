@@ -135,6 +135,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+AUTH_USER_MODEL = 'cklauth.User'
+
+AUTHENTICATION_BACKENDS = ['cklauth.auth.EmailOrUsernameModelBackend']
+
+CKL_REST_AUTH = 'email'
+
 
 # Google settings
 GOOGLE_CLIENT_ID = 'insert-your-key'
