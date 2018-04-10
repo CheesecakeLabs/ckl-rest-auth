@@ -4,7 +4,7 @@ import pytest
 
 from django.test import Client
 from django.urls import reverse
-from django.contrib.auth import get_user_model, settings
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 
@@ -41,15 +41,6 @@ def mocked_requests_get(*args, **kwargs):
             },
             200
         )
-    # elif args[0] == constants.FACEBOOK_USER_URL:
-    #     return MockResponse(
-    #         {
-    #             "name": "test test2",
-    #             "email": "test@ckl.io",
-    #             "id": "2024821427134319"
-    #         },
-    #         200
-    #     )
 
     return MockResponse({}, 404)
 
@@ -74,15 +65,6 @@ def mocked_requests_post(*args, **kwargs):
             ,
             200
         )
-    # if args[0] == constants.FACEBOOK_TOKEN_URL:
-    #     return MockResponse(
-    #         {
-    #             "access_token": "bh1n65vu87q59lkcz3asu2omfs1nje",
-    #             "expires_in": 3600,
-    #             "token_type": "Bearer"
-    #         },
-    #         200
-    #     )
     return MockResponse({}, 404)
 
 
