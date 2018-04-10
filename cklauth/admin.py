@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.urls import reverse
 from django.utils.html import format_html
 
@@ -32,6 +31,3 @@ class SocialAccountAdmin(admin.ModelAdmin):
         ))
 
     user_.allow_tags = True
-
-
-admin.site.register(models.User, UserAdmin)

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     'cklauth',
+    'testapp',
     'custom_user',
 ]
 
@@ -135,7 +136,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-AUTH_USER_MODEL = 'custom_user.CustomUser'
+AUTH_USER_MODEL = 'custom_user.User'
 
 AUTHENTICATION_BACKENDS = ['cklauth.auth.EmailOrUsernameModelBackend']
 
