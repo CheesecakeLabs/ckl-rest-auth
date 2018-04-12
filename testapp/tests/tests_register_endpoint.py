@@ -3,10 +3,13 @@ import json
 import pytest
 from django.test import Client
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 
+
+
+User = get_user_model()
 
 
 @pytest.mark.django_db(transaction=True)
@@ -18,13 +21,13 @@ class TestRegisterEndpoint:
             path=reverse('cklauth:register'),
             data=json.dumps({
                 'username': 'username',
-                'email': 'username@email.com',
+                'email': 'email@email.com',
                 'password': 'password'
             }),
             content_type='application/json'
         )
 
-        content = json.loads(request.content)
+        content = json.loads(request.content.decode('utf-8'))
 
         assert request.status_code == status.HTTP_201_CREATED
         assert content['message'] == 'Ok.'
@@ -39,12 +42,12 @@ class TestRegisterEndpoint:
             path=reverse('cklauth:register'),
             data=json.dumps({
                 'username': 'username',
-                'email': 'username@email.com'
+                'email': 'email@email.com'
             }),
             content_type='application/json'
         )
 
-        content = json.loads(request.content)
+        content = json.loads(request.content.decode('utf-8'))
 
         assert request.status_code == status.HTTP_400_BAD_REQUEST
         assert content == {'password': ['This field is required.']}
@@ -52,7 +55,7 @@ class TestRegisterEndpoint:
     def test_register_username_already_registered(self):
         user = User.objects.create_user(
             username='username',
-            email='username@email.com',
+            email='email@email.com',
             password='password'
         )
 
@@ -60,14 +63,14 @@ class TestRegisterEndpoint:
             path=reverse('cklauth:register'),
             data=json.dumps({
                 'username': 'username',
-                'email': 'username@email.com',
+                'email': 'email@email.com',
                 'password': 'password'
             }),
             content_type='application/json'
         )
 
-        content = json.loads(request.content)
+        content = json.loads(request.content.decode('utf-8'))
 
         assert request.status_code == status.HTTP_400_BAD_REQUEST
-        assert content == {'username': ['This username is already in use.']}
+        assert content == {'username': ['This username is already in use.']} or {'email': ['This email is already in use.']}
 

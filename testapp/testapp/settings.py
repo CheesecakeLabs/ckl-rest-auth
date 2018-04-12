@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
@@ -40,10 +42,18 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework.authtoken',
+    'corsheaders',
 
     'cklauth',
     'testapp',
+    'custom_user',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'cklauth.auth.TokenAuthSupportQueryString',
+    )
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -53,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'testapp.urls'
@@ -129,6 +140,21 @@ STATIC_URL = '/static/'
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
 
-CKL_REST_AUTH = {
-    'FROM_EMAIL': 'noreply@ckl.io',
-}
+CKL_REST_AUTH_FROM_EMAIL = 'noreply@ckl.io'
+
+AUTH_USER_MODEL = 'custom_user.User'
+
+AUTHENTICATION_BACKENDS = ['cklauth.auth.EmailOrUsernameModelBackend']
+
+CKL_REST_AUTH = 'email'
+
+
+# Google settings
+GOOGLE_CLIENT_ID = 'insert-your-key'
+GOOGLE_CLIENT_SECRET = 'insert-your-key'
+GOOGLE_REDIRECT_URI = 'insert-your-uri'
+
+# Facebook settings
+FACEBOOK_CLIENT_ID = 'insert-your-key'
+FACEBOOK_CLIENT_SECRET = 'insert-your-key'
+FACEBOOK_REDIRECT_URI = 'insert-your-uri'
