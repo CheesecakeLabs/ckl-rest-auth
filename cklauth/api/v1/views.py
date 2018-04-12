@@ -86,8 +86,8 @@ class GoogleAuthView(APIView):
         # https://developers.google.com/gmail/api/auth/scopes
         payload = {
             'response_type': 'code',
-            'client_id': settings.CKL_REST_AUTH['GOOGLE']['CLIENT_ID'],
-            'redirect_uri': settings.CKL_REST_AUTH['GOOGLE']['REDIRECT_URI'],
+            'client_id': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_ID'),
+            'redirect_uri': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('REDIRECT_URI'),
             'scope': (
                 'https://www.googleapis.com/auth/userinfo.profile ',
                 'https://www.googleapis.com/auth/userinfo.email'
@@ -105,10 +105,10 @@ class GoogleAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             payload = {
-                'client_id': settings.CKL_REST_AUTH['GOOGLE']['CLIENT_ID'],
-                'client_secret': settings.CKL_REST_AUTH['GOOGLE']['CLIENT_SECRET'],
+                'client_id': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_ID'),
+                'client_secret': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_SECRET'),
                 'grant_type': 'authorization_code',
-                'redirect_uri': settings.CKL_REST_AUTH['GOOGLE']['REDIRECT_URI'],
+                'redirect_uri': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('REDIRECT_URI'),
                 'code': request.data['code'],
             }
 
@@ -184,8 +184,8 @@ class FacebookAuthView(APIView):
     def get(self, request, format=None):
         payload = {
             'response_type': 'code',
-            'client_id': settings.CKL_REST_AUTH['FACEBOOK']['CLIENT_ID'],
-            'redirect_uri': settings.CKL_REST_AUTH['FACEBOOK']['REDIRECT_URI'],
+            'client_id': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_ID'),
+            'redirect_uri': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('REDIRECT_URI'),
             'state': json.dumps(request.query_params),
             'scope': 'email',
         }
@@ -200,10 +200,10 @@ class FacebookAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             payload = {
-                'client_id': settings.CKL_REST_AUTH['FACEBOOK']['CLIENT_ID'],
-                'client_secret': settings.CKL_REST_AUTH['FACEBOOK']['CLIENT_SECRET'],
+                'client_id': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_ID'),
+                'client_secret': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_SECRET'),
                 'grant_type': 'authorization_code',
-                'redirect_uri': settings.CKL_REST_AUTH['FACEBOOK']['REDIRECT_URI'],
+                'redirect_uri': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('REDIRECT_URI'),
                 'code': request.data['code'],
             }
 
