@@ -77,3 +77,8 @@ class LoginSerializer(DynamicFieldsModelSerializer):
             'email',
             'password'
         )
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+

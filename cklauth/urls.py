@@ -1,8 +1,8 @@
-from django.conf.urls import url, include
+from django.urls import include, path
 
 from cklauth.api import urls
 
-app_name = 'cklauth'
 urlpatterns = [
-    url(r'api/', include(urls))
+    path('api/', include((urls, 'cklauth'), namespace='cklauth')),
+    path('', include('django.contrib.auth.urls')),
 ]

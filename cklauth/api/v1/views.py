@@ -1,21 +1,20 @@
 import json
 import requests
 
-from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.forms import PasswordResetForm
+from django.http import JsonResponse
 from django.shortcuts import redirect
-from rest_framework.parsers import JSONParser
 from rest_framework import status
-from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-from .serializers import RegisterSerializer, LoginSerializer
 from cklauth import constants
 from cklauth.models import SocialAccount
+from .serializers import RegisterSerializer, LoginSerializer, PasswordResetSerializer
 
-from .serializers import RegisterSerializer
 
 User = get_user_model()
 
@@ -61,6 +60,24 @@ def login(request):
     }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@api_view(['POST',])
+def password_reset(request):
+    serializer = PasswordResetSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    form = PasswordResetForm(serializer.validated_data)
+    if form.is_valid():
+        form.save(
+            from_email=settings.CKL_REST_AUTH.get('FROM_EMAIL'),
+            email_template_name='registration/password_reset_email.html',
+            request=request
+        )
+
+    return JsonResponse({
+        'message': 'Ok.',
+    }, status=status.HTTP_200_OK)
+
+
 class GoogleAuthView(APIView):
     permission_classes = []
 
@@ -71,7 +88,10 @@ class GoogleAuthView(APIView):
             'response_type': 'code',
             'client_id': settings.GOOGLE_CLIENT_ID,
             'redirect_uri': settings.GOOGLE_REDIRECT_URI,
-            'scope': 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+            'scope': (
+                'https://www.googleapis.com/auth/userinfo.profile ',
+                'https://www.googleapis.com/auth/userinfo.email'
+            ),
             'state': json.dumps(request.query_params),
         }
         request = requests.Request('GET', constants.GOOGLE_AUTH_URL, params=payload).prepare()
