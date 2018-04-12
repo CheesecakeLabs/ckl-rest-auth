@@ -1,11 +1,12 @@
 import json
+
+import pytest
 from django.test import Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 
-import pytest
 
 
 User = get_user_model()
