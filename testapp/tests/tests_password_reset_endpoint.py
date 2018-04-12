@@ -18,7 +18,7 @@ class TestPasswordResetEndpoint:
         test_user = User.objects.create_user(email='test@mail.com', username='test', password='1234qwer')
 
         request = self.client.post(
-            path=reverse('cklauth:password_reset'),
+            path=reverse('cklauth:password-reset'),
             data=json.dumps({
                 'email': test_user.email,
             }),
@@ -33,7 +33,7 @@ class TestPasswordResetEndpoint:
 
     def test_password_reset_successful_non_existing_user(self, mailoutbox):
         request = self.client.post(
-            path=reverse('cklauth:password_reset'),
+            path=reverse('cklauth:password-reset'),
             data=json.dumps({
                 'email': 'nobody@mail.com',
             }),
@@ -48,7 +48,7 @@ class TestPasswordResetEndpoint:
 
     def test_password_reset_failed_invalid_payload(self):
         request = self.client.post(
-            path=reverse('cklauth:password_reset'),
+            path=reverse('cklauth:password-reset'),
             data=json.dumps({
                 'username': 'username'
             }),
@@ -59,4 +59,3 @@ class TestPasswordResetEndpoint:
 
         assert request.status_code == status.HTTP_400_BAD_REQUEST
         assert content == {'email': ['This field is required.']}
-
