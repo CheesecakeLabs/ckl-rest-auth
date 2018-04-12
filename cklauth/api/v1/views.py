@@ -41,11 +41,11 @@ def register(request):
 
 @api_view(['POST',])
 def login(request):
-    fields = [settings.CKL_REST_AUTH, 'password']
+    fields = [settings.CKL_REST_AUTH['LOGIN_FIELD'], 'password']
     serializer = LoginSerializer(data=request.data, fields=fields)
 
     serializer.is_valid(raise_exception=True)
-    username = serializer.validated_data[settings.CKL_REST_AUTH]
+    username = serializer.validated_data[settings.CKL_REST_AUTH['LOGIN_FIELD']]
     password = serializer.validated_data['password']
     user = authenticate(username=username, password=password)
 

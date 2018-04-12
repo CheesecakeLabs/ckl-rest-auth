@@ -140,15 +140,20 @@ AUTH_USER_MODEL = 'custom_user.User'
 
 AUTHENTICATION_BACKENDS = ['cklauth.auth.EmailOrUsernameModelBackend']
 
-CKL_REST_AUTH = 'email'
 
-
-# Google settings
-GOOGLE_CLIENT_ID = 'insert-your-key'
-GOOGLE_CLIENT_SECRET = 'insert-your-key'
-GOOGLE_REDIRECT_URI = 'insert-your-uri'
-
-# Facebook settings
-FACEBOOK_CLIENT_ID = 'insert-your-key'
-FACEBOOK_CLIENT_SECRET = 'insert-your-key'
-FACEBOOK_REDIRECT_URI = 'insert-your-uri'
+CKL_REST_AUTH = {
+        # Field used in user authentication
+        'LOGIN_FIELD': 'email',
+        # Google settings
+        'GOOGLE': {
+            'CLIENT_ID': 'insert-your-key',
+            'CLIENT_SECRET': '',
+            'REDIRECT_URI': '',
+        },
+        # Facebook settings
+        'FACEBOOK': {
+            'CLIENT_ID': '',
+            'CLIENT_SECRET': '',
+            'REDIRECT_URI': '',
+        },
+}
