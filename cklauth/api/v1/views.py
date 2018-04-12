@@ -1,6 +1,7 @@
-from django.http import JsonResponse
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.http import JsonResponse
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -47,15 +48,16 @@ def login(request):
 @api_view(['POST',])
 def password_reset(request):
     serializer = PasswordResetSerializer(data=request.data)
-
     serializer.is_valid(raise_exception=True)
 
-    form = PasswordResetForm({'email': request.data['email']})
-
+    form = PasswordResetForm(serializer.validated_data)
     if form.is_valid():
-        form.save(from_email='noreply@ckl.io', email_template_name='registration/password_reset_email.html', request=request)
+        form.save(
+            from_email=settings.CKL_REST_AUTH.get('FROM_EMAIL'),
+            email_template_name='registration/password_reset_email.html',
+            request=request
+        )
 
     return JsonResponse({
         'message': 'Ok.',
     }, status=status.HTTP_200_OK)
-

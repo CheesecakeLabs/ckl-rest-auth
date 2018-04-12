@@ -129,3 +129,8 @@ STATIC_URL = '/static/'
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
+
+CKL_REST_AUTH = {
+    'FROM_EMAIL': 'noreply@ckl.io',
+}
