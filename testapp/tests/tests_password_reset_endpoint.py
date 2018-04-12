@@ -15,7 +15,11 @@ class TestPasswordResetEndpoint:
     client = Client()
 
     def test_password_reset_successful(self, mailoutbox):
-        test_user = User.objects.create_user(email='test@mail.com', username='test', password='1234qwer')
+        test_user = User.objects.create_user(
+            email='test@mail.com',
+            username='test',
+            password='1234qwer'
+        )
 
         request = self.client.post(
             path=reverse('cklauth:password-reset'),
