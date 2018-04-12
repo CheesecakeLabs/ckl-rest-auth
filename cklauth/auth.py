@@ -15,7 +15,7 @@ class TokenAuthSupportQueryString(TokenAuthentication):
 
 class EmailOrUsernameModelBackend(object):
     def authenticate(self, username=None, password=None):
-        kwargs = {settings.CKL_REST_AUTH: username}
+        kwargs = {settings.CKL_REST_AUTH['LOGIN_FIELD']: username}
         try:
             user = User.objects.filter(**kwargs).order_by('id')[0]
             if user.check_password(password):

@@ -9,7 +9,6 @@ from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view
-from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
 
 from cklauth import constants
@@ -41,11 +40,11 @@ def register(request):
 
 @api_view(['POST',])
 def login(request):
-    fields = [settings.CKL_REST_AUTH, 'password']
+    fields = [settings.CKL_REST_AUTH['LOGIN_FIELD'], 'password']
     serializer = LoginSerializer(data=request.data, fields=fields)
 
     serializer.is_valid(raise_exception=True)
-    username = serializer.validated_data[settings.CKL_REST_AUTH]
+    username = serializer.validated_data[settings.CKL_REST_AUTH['LOGIN_FIELD']]
     password = serializer.validated_data['password']
     user = authenticate(username=username, password=password)
 
@@ -69,7 +68,7 @@ def password_reset(request):
     form = PasswordResetForm(serializer.validated_data)
     if form.is_valid():
         form.save(
-            from_email=settings.CKL_REST_AUTH_FROM_EMAIL,
+            from_email=settings.CKL_REST_AUTH.get('FROM_EMAIL'),
             email_template_name='registration/password_reset_email.html',
             request=request
         )
@@ -87,8 +86,8 @@ class GoogleAuthView(APIView):
         # https://developers.google.com/gmail/api/auth/scopes
         payload = {
             'response_type': 'code',
-            'client_id': settings.GOOGLE_CLIENT_ID,
-            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+            'client_id': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_ID'),
+            'redirect_uri': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('REDIRECT_URI'),
             'scope': (
                 'https://www.googleapis.com/auth/userinfo.profile ',
                 'https://www.googleapis.com/auth/userinfo.email'
@@ -106,10 +105,10 @@ class GoogleAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             payload = {
-                'client_id': settings.GOOGLE_CLIENT_ID,
-                'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                'client_id': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_ID'),
+                'client_secret': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_SECRET'),
                 'grant_type': 'authorization_code',
-                'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                'redirect_uri': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('REDIRECT_URI'),
                 'code': request.data['code'],
             }
 
@@ -185,8 +184,8 @@ class FacebookAuthView(APIView):
     def get(self, request, format=None):
         payload = {
             'response_type': 'code',
-            'client_id': settings.FACEBOOK_CLIENT_ID,
-            'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
+            'client_id': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_ID'),
+            'redirect_uri': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('REDIRECT_URI'),
             'state': json.dumps(request.query_params),
             'scope': 'email',
         }
@@ -201,10 +200,10 @@ class FacebookAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             payload = {
-                'client_id': settings.FACEBOOK_CLIENT_ID,
-                'client_secret': settings.FACEBOOK_CLIENT_SECRET,
+                'client_id': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_ID'),
+                'client_secret': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_SECRET'),
                 'grant_type': 'authorization_code',
-                'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
+                'redirect_uri': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('REDIRECT_URI'),
                 'code': request.data['code'],
             }
 

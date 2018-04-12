@@ -9,9 +9,9 @@ class CustomUserManager(UserManager):
         """
         Create and save a user with the given username, email, and password.
         """
-        if (not username and settings.CKL_REST_AUTH == 'username') or \
-                (not email and settings.CKL_REST_AUTH == 'email'):
-            raise ValueError('The given {0} must be set'.format(settings.CKL_REST_AUTH))
+        if (not username and settings.CKL_REST_AUTH['LOGIN_FIELD'] == 'username') or \
+                (not email and settings.CKL_REST_AUTH['LOGIN_FIELD'] == 'email'):
+            raise ValueError('The given {0} must be set'.format(settings.CKL_REST_AUTH['LOGIN_FIELD']))
         email = self.normalize_email(email)
         username = self.model.normalize_username(self.get_username(username=username))
         user = self.model(username=username, email=email, **extra_fields)
@@ -50,6 +50,6 @@ class CustomUserManager(UserManager):
 class User(AbstractUser):
     email = models.EmailField(blank=True, max_length=254, verbose_name='email address', unique=True)
 
-    USERNAME_FIELD = settings.CKL_REST_AUTH
-    REQUIRED_FIELDS = ['username'] if settings.CKL_REST_AUTH == 'email' else ['email']
+    USERNAME_FIELD = settings.CKL_REST_AUTH['LOGIN_FIELD']
+    REQUIRED_FIELDS = ['username'] if settings.CKL_REST_AUTH['LOGIN_FIELD'] == 'email' else ['email']
     objects = CustomUserManager()
