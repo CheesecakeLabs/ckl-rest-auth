@@ -46,7 +46,7 @@ def login(request):
     user = authenticate(username=username, password=password)
 
     if user:
-        token = Token.objects.get(user=user)
+        token, _ = Token.objects.get_or_create(user=user)
 
         return JsonResponse({
             'token': token.key
