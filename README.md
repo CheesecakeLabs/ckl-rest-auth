@@ -7,9 +7,9 @@ An opinionated Django app to provide user authentication.
 1. Add to your project's `INSTALLED_APPS`:
   - `rest_framework`
   - `rest_framework.authtoken`
-  - `corsheaders` 
+  - `corsheaders`
   - `cklauth`
-1. Include ckl-rest-auth urls to your project:  
+1. Include ckl-rest-auth urls to your project:
    On urls.py add `path('', include('cklauth.urls'))`
 1. Add settings according to the project requirements:
 ```
@@ -23,7 +23,7 @@ CKL_REST_AUTH = {
     'USER_SERIALIZER': 'cklauth.api.v1.serializers.UserSerializer',
 
     # Fields used on user serializer (not used if USER_SERIALIZER is defined above)
-    'REGISTER_FIELDS': ['username', 'email'],
+    'REGISTER_FIELDS': ('username', 'email'),
 
     # From email used on password reset emails (optional)
     'FROM_EMAIL': 'default@email.com',
