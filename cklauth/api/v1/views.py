@@ -1,7 +1,7 @@
 import json
-import requests
+from pydoc import locate
 
-from django.conf import settings
+import requests
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import PasswordResetForm
 from django.http import JsonResponse
@@ -11,30 +11,27 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
+import cklauth.app_settings as settings
 from cklauth import constants
 from cklauth.models import SocialAccount
-from .serializers import RegisterSerializer, LoginSerializer, PasswordResetSerializer
+from .serializers import RegisterSerializerFactory, LoginSerializer, PasswordResetSerializer
 
 
 User = get_user_model()
+UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
 
 
 @api_view(['POST',])
 def register(request):
-    fields = []
-    for key in request.data.keys():
-        fields.append(key)
-    if 'password' not in fields:
-        return JsonResponse({
-            'password': ['This field is required.']
-        }, status=status.HTTP_400_BAD_REQUEST)
-    serializer = RegisterSerializer(data=request.data, fields=fields)
+    RegisterSerializer = RegisterSerializerFactory(UserSerializer)
 
+    serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    serializer.save()
+    user, token = serializer.save()
 
     return JsonResponse({
-        'message': 'Ok.'
+        'token': token.key,
+        'user': UserSerializer(instance=user).data,
     }, status=status.HTTP_201_CREATED)
 
 
@@ -52,11 +49,12 @@ def login(request):
         token, _ = Token.objects.get_or_create(user=user)
 
         return JsonResponse({
-            'token': token.key
+            'token': token.key,
+            'user': UserSerializer(instance=user).data,
         }, status=status.HTTP_200_OK)
 
     return JsonResponse({
-        'message': 'Wrong credentials.'
+        'non_field_errors': ['Wrong credentials.']
     }, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -73,9 +71,7 @@ def password_reset(request):
             request=request
         )
 
-    return JsonResponse({
-        'message': 'Ok.',
-    }, status=status.HTTP_200_OK)
+    return JsonResponse(request.data, status=status.HTTP_200_OK)
 
 
 class GoogleAuthView(APIView):

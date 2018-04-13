@@ -1,7 +1,10 @@
-from django.contrib.auth import get_user_model, settings
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework.authtoken.models import Token
+
+import cklauth.app_settings as settings
+
 
 User = get_user_model()
 
@@ -27,42 +30,48 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
                 self.fields.pop(field_name)
 
 
-class RegisterSerializer(DynamicFieldsModelSerializer):
-    username = serializers.CharField(
-        required=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message='This username is already in use.'
-            )
-        ]
-    )
-    email = serializers.EmailField(
-        required=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message='This email is already in use.'
-            )
-        ]
-    )
-    password = serializers.CharField(
-        required=True
-    )
-
+class UserSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = User
-        fields = (
-            'username',
-            'email',
-            'password'
-        )
+        fields = settings.CKL_REST_AUTH.get('REGISTER_FIELDS') + ('id',)
 
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        token = Token.objects.create(user=user)
+    def validate_username(self, value):
+        if 'username' not in settings.CKL_REST_AUTH.get('REGISTER_FIELDS'):
+            return None
 
-        return user, token
+        if not value:
+            raise serializers.ValidationError('This field is required.')
+        if User.objects.filter(username=value):
+            raise serializers.ValidationError('This username is already in use.')
+
+        return value
+
+    def validate_email(self, value):
+        if 'email' not in settings.CKL_REST_AUTH.get('REGISTER_FIELDS'):
+            return None
+
+        if not value:
+            raise serializers.ValidationError('This field is required.')
+        if User.objects.filter(email=value):
+            raise serializers.ValidationError('This email is already in use.')
+
+        return value
+
+
+def RegisterSerializerFactory(user_serializer=UserSerializer):
+    class RegisterSerializer(user_serializer):
+        password = serializers.CharField(required=True)
+
+        class Meta(user_serializer.Meta):
+            fields = user_serializer.Meta.fields + ('password',)
+
+        def create(self, validated_data):
+            user = User.objects.create_user(**validated_data)
+            token = Token.objects.create(user=user)
+
+            return user, token
+
+    return RegisterSerializer
 
 
 class LoginSerializer(DynamicFieldsModelSerializer):
@@ -81,4 +90,3 @@ class LoginSerializer(DynamicFieldsModelSerializer):
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-

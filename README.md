@@ -1,19 +1,130 @@
 # ckl-rest-auth
-A Django application to provide user authentication.
+An opinionated Django app to provide user authentication.
 
-## About running the tests:
+## Installation
+
+1. `pip install cklauth`
+1. Add to your project's `INSTALLED_APPS`:
+  - `rest_framework`
+  - `rest_framework.authtoken`
+  - `corsheaders`
+  - `cklauth`
+1. Include ckl-rest-auth urls to your project:
+   On urls.py add `path('', include('cklauth.urls'))`
+1. Add settings according to the project requirements:
+```
+AUTHENTICATION_BACKENDS = ['cklauth.auth.EmailOrUsernameModelBackend']
+
+CKL_REST_AUTH = {
+    # Field used for authencation together with password (required - 'email' or 'password')
+    'LOGIN_FIELD': 'email',
+
+    # Serializer used on registration and authentication responses (optional)
+    'USER_SERIALIZER': 'cklauth.api.v1.serializers.UserSerializer',
+
+    # Fields used on user serializer (not used if USER_SERIALIZER is defined above)
+    'REGISTER_FIELDS': ('username', 'email'),
+
+    # From email used on password reset emails (optional)
+    'FROM_EMAIL': 'default@email.com',
+
+    # Google authentication settings (optional)
+    'GOOGLE': {
+        'CLIENT_ID': 'insert-your-key',
+        'CLIENT_SECRET': 'insert-your-key',
+        'REDIRECT_URI': 'insert-your-uri',
+    },
+
+    # Facebook authentication settings (optional)
+    'FACEBOOK': {
+        'CLIENT_ID': 'insert-your-key',
+        'CLIENT_SECRET': 'insert-your-key',
+        'REDIRECT_URI': 'insert-your-uri',
+    },
+}
+```
+
+## Basic Endpoints
+
+`POST /api/v1/login`
+Body (depends on LOGIN_FIELD)
+```
+{
+  "email": "example@example.com",
+  "password": "secret"
+}
+```
+Response (depends on REGISTER_FIELDS and USER_SERIALIZER) - 200 OK
+```
+{
+  "token": "supersecret",
+  "user": {
+    "id": 1,
+    "email": "example@example.com",
+    "first_name": "Example",
+    "last_name": "Example"
+  }
+}
+```
+
+`POST /api/v1/register`
+Body (depends on REGISTER_FIELDS and USER_SERIALIZER -- always has a password)
+```
+{
+  "email": "example@example.com",
+  "password": "secret",
+  "first_name": "Example",
+  "last_name": "Example"
+}
+```
+Response (depends on REGISTER_FIELDS and USER_SERIALIZER) - 201 CREATED
+```
+{
+  "token": "supersecret",
+  "user": {
+    "id": 1,
+    "email": "example@example.com",
+    "password": "secret",
+    "first_name": "Example",
+    "last_name": "Example"
+  }
+}
+```
+
+`POST /api/v1/password-reset/`
+Body
+```
+{
+  "email": "example@example.com"
+}
+```
+Response - 200 OK
+```
+{
+  "email": "example@example.com"
+}
+```
+Note: it always returns success, even if the provided email is not registered.
+
+
+## Social Endpoints
+
+TODO
+
+## Contributing
+
+The library code is under `cklauth` folder and tests are in a test project under `testapp`
+folder.
+
+### Running tests:
 
 * Ensure that you have the app requirements installed
 ```
 pip install -r requirements.txt
-```
-
-* Open the testapp project
-```
-cd ckl-rest-auth/testapp
+pip install -e cklauth
 ```
 
 * Run the tests
 ```
-pytest
+python -m pytest testapp
 ```

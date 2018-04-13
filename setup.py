@@ -9,18 +9,20 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='cklauth',
-    version='0.1',
+    version='0.1.1',
     packages=find_packages(),
     include_package_data=True,
     license='BSD License',
-    description='A Django app to provide user authentication.',
+    description='An opinionated Django app to provide user authentication.',
     long_description=README,
     url='https://github.com/CheesecakeLabs/ckl-rest-auth',
     author='Cheesecake Labs',
 
     install_requires=[
         'Django == 2.0',
-        'djangorestframework == 3.7.3'
+        'djangorestframework == 3.7.3',
+        'django-cors-headers==2.1.0',
+        'requests==2.18.4'
     ],
 
     classifiers=[

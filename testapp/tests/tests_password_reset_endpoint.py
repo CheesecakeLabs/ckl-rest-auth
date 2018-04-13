@@ -2,7 +2,6 @@ import json
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.test import Client
 from django.urls import reverse
 from rest_framework import status
 
@@ -12,16 +11,14 @@ User = get_user_model()
 
 @pytest.mark.django_db(transaction=True)
 class TestPasswordResetEndpoint:
-    client = Client()
-
-    def test_password_reset_successful(self, mailoutbox):
+    def test_password_reset_successful(self, client, mailoutbox):
         test_user = User.objects.create_user(
             email='test@mail.com',
             username='test',
             password='1234qwer'
         )
 
-        request = self.client.post(
+        request = client.post(
             path=reverse('cklauth:password-reset'),
             data=json.dumps({
                 'email': test_user.email,
@@ -35,8 +32,8 @@ class TestPasswordResetEndpoint:
         assert len(mailoutbox) == 1
 
 
-    def test_password_reset_successful_non_existing_user(self, mailoutbox):
-        request = self.client.post(
+    def test_password_reset_successful_non_existing_user(self, client, mailoutbox):
+        request = client.post(
             path=reverse('cklauth:password-reset'),
             data=json.dumps({
                 'email': 'nobody@mail.com',
@@ -50,8 +47,8 @@ class TestPasswordResetEndpoint:
         assert len(mailoutbox) == 0
 
 
-    def test_password_reset_failed_invalid_payload(self):
-        request = self.client.post(
+    def test_password_reset_failed_invalid_payload(self, client):
+        request = client.post(
             path=reverse('cklauth:password-reset'),
             data=json.dumps({
                 'username': 'username'
