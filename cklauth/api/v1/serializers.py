@@ -1,7 +1,9 @@
-from django.contrib.auth import get_user_model, settings
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework.authtoken.models import Token
+
+import cklauth.app_settings as settings
 
 
 User = get_user_model()

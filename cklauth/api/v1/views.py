@@ -2,7 +2,6 @@ import json
 from pydoc import locate
 
 import requests
-from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import PasswordResetForm
 from django.http import JsonResponse
@@ -12,6 +11,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
+import cklauth.app_settings as settings
 from cklauth import constants
 from cklauth.models import SocialAccount
 from .serializers import RegisterSerializerFactory, LoginSerializer, PasswordResetSerializer

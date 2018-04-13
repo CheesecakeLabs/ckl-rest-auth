@@ -1,7 +1,6 @@
 import json
 
 import pytest
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -47,7 +46,7 @@ class TestRegisterEndpoint:
         assert request.status_code == status.HTTP_400_BAD_REQUEST
         assert content == {'password': ['This field is required.']}
 
-    def test_register_username_already_registered(self, client):
+    def test_register_username_already_registered(self, client, settings):
         user = User.objects.create_user(
             username='username',
             email='email@email.com',

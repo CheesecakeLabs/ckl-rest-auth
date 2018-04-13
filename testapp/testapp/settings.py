@@ -143,10 +143,7 @@ AUTH_USER_MODEL = 'custom_user.User'
 AUTHENTICATION_BACKENDS = ['cklauth.auth.EmailOrUsernameModelBackend']
 
 CKL_REST_AUTH = {
-    # Field used in user authentication
     'LOGIN_FIELD': 'email',
-    'REGISTER_FIELDS': ['username', 'email'],
-    'USER_SERIALIZER': 'cklauth.api.v1.serializers.UserSerializer',
     'FROM_EMAIL': 'default@email.com',
     # Google settings
     'GOOGLE': {
