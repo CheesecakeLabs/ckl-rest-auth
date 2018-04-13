@@ -16,7 +16,7 @@ class TestLoginEndpoint:
     client = Client()
 
     def test_login_successful(self):
-        token = self._create_user_token('username', 'email@ckl.io', 'password')
+        user = self._create_user('username', 'email@ckl.io', 'password')
 
         request = self.client.post(
             path=reverse('cklauth:login'),
@@ -31,7 +31,7 @@ class TestLoginEndpoint:
         content = json.loads(request.content.decode('utf-8'))
 
         assert request.status_code == status.HTTP_200_OK
-        assert content['token'] == token.key
+        assert content['token'] == Token.objects.get(user=user).key
 
     def test_login_invalid_payload(self):
         request = self.client.post(
@@ -49,7 +49,7 @@ class TestLoginEndpoint:
         assert content == {'password': ['This field is required.']}
 
     def test_login_wrong_password(self):
-        token = self._create_user_token('username', 'email@ckl.io', 'password')
+        _ = self._create_user('username', 'email@ckl.io', 'password')
 
         request = self.client.post(
             path=reverse('cklauth:login'),
@@ -67,12 +67,9 @@ class TestLoginEndpoint:
         assert content['message'] == 'Wrong credentials.'
 
     @staticmethod
-    def _create_user_token(username, email, password):
-        user = User.objects.create_user(
+    def _create_user(username, email, password):
+        return User.objects.create_user(
             username=username,
             email=email,
             password=password
         )
-        token = Token.objects.create(user=user)
-
-        return token
