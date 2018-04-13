@@ -18,11 +18,11 @@ from .serializers import RegisterSerializerFactory, LoginSerializer, PasswordRes
 
 
 User = get_user_model()
+UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
 
 
 @api_view(['POST',])
 def register(request):
-    UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
     RegisterSerializer = RegisterSerializerFactory(UserSerializer)
 
     serializer = RegisterSerializer(data=request.data)
@@ -49,11 +49,12 @@ def login(request):
         token, _ = Token.objects.get_or_create(user=user)
 
         return JsonResponse({
-            'token': token.key
+            'token': token.key,
+            'user': UserSerializer(instance=user).data,
         }, status=status.HTTP_200_OK)
 
     return JsonResponse({
-        'message': 'Wrong credentials.'
+        'non_field_errors': ['Wrong credentials.']
     }, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -70,9 +71,7 @@ def password_reset(request):
             request=request
         )
 
-    return JsonResponse({
-        'message': 'Ok.',
-    }, status=status.HTTP_200_OK)
+    return JsonResponse(request.data, status=status.HTTP_200_OK)
 
 
 class GoogleAuthView(APIView):

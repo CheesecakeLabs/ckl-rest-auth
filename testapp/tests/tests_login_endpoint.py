@@ -32,6 +32,7 @@ class TestLoginEndpoint:
 
         assert request.status_code == status.HTTP_200_OK
         assert content['token'] == Token.objects.get(user=user).key
+        assert content['user']['id'] == user.id
 
     def test_login_invalid_payload(self):
         request = self.client.post(
@@ -64,12 +65,4 @@ class TestLoginEndpoint:
         content = json.loads(request.content.decode('utf-8'))
 
         assert request.status_code == status.HTTP_401_UNAUTHORIZED
-        assert content['message'] == 'Wrong credentials.'
-
-    @staticmethod
-    def _create_user(username, email, password):
-        return User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
-        )
+        assert content['non_field_errors'] == ['Wrong credentials.']
