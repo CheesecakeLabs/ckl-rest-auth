@@ -4,7 +4,11 @@ An opinionated Django app to provide user authentication.
 ## Installation
 
 1. `pip install cklauth`
-1. Add `cklauth` to the project's `INSTALLED_APPS`
+1. Add to your project's `INSTALLED_APPS`:
+  - `rest_framework`
+  - `rest_framework.authtoken`
+  - `corsheaders` 
+  - `cklauth`
 1. Include ckl-rest-auth urls to your project:  
    On urls.py add `path('', include('cklauth.urls'))`
 1. Add settings according to the project requirements:
