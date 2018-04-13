@@ -37,7 +37,7 @@ class UserSerializer(DynamicFieldsModelSerializer):
 
     def validate_username(self, value):
         if 'username' not in settings.CKL_REST_AUTH.get('REGISTER_FIELDS'):
-            return True
+            return None
 
         if not value:
             raise serializers.ValidationError('This field is required.')
@@ -48,7 +48,7 @@ class UserSerializer(DynamicFieldsModelSerializer):
 
     def validate_email(self, value):
         if 'email' not in settings.CKL_REST_AUTH.get('REGISTER_FIELDS'):
-            return True
+            return None
 
         if not value:
             raise serializers.ValidationError('This field is required.')
