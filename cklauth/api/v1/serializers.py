@@ -28,7 +28,7 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
                 self.fields.pop(field_name)
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(DynamicFieldsModelSerializer):
     username = serializers.CharField(
         required=True,
         validators=[
@@ -50,22 +50,17 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = (
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-        )
+        fields = settings.CKL_REST_AUTH.get('REGISTER_FIELDS') + ['id']
 
 
-def get_register_serializer(user_serializer=UserSerializer):
-    class RegisterSerializer(user_serializer, DynamicFieldsModelSerializer):
+def RegisterSerializerFactory(user_serializer=UserSerializer):
+    class RegisterSerializer(user_serializer):
         password = serializers.CharField(
             required=True
         )
 
         class Meta(user_serializer.Meta):
-            fields = user_serializer.Meta.fields + ('password', )
+            fields = user_serializer.Meta.fields + ['password']
 
         def create(self, validated_data):
             user = User.objects.create_user(**validated_data)
