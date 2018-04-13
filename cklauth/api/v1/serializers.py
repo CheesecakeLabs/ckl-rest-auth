@@ -31,38 +31,39 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(DynamicFieldsModelSerializer):
-    username = serializers.CharField(
-        required=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message='This username is already in use.'
-            )
-        ]
-    )
-    email = serializers.EmailField(
-        required=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message='This email is already in use.'
-            )
-        ]
-    )
-
     class Meta:
         model = User
-        fields = settings.CKL_REST_AUTH.get('REGISTER_FIELDS') + ['id']
+        fields = settings.CKL_REST_AUTH.get('REGISTER_FIELDS') + ('id',)
+
+    def validate_username(self, value):
+        if 'username' not in settings.CKL_REST_AUTH.get('REGISTER_FIELDS'):
+            return True
+
+        if not value:
+            raise serializers.ValidationError('This field is required.')
+        if User.objects.filter(username=value):
+            raise serializers.ValidationError('This username is already in use.')
+
+        return value
+
+    def validate_email(self, value):
+        if 'email' not in settings.CKL_REST_AUTH.get('REGISTER_FIELDS'):
+            return True
+
+        if not value:
+            raise serializers.ValidationError('This field is required.')
+        if User.objects.filter(email=value):
+            raise serializers.ValidationError('This email is already in use.')
+
+        return value
 
 
 def RegisterSerializerFactory(user_serializer=UserSerializer):
     class RegisterSerializer(user_serializer):
-        password = serializers.CharField(
-            required=True
-        )
+        password = serializers.CharField(required=True)
 
         class Meta(user_serializer.Meta):
-            fields = user_serializer.Meta.fields + ['password']
+            fields = user_serializer.Meta.fields + ('password',)
 
         def create(self, validated_data):
             user = User.objects.create_user(**validated_data)
