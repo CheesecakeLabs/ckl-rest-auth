@@ -74,3 +74,27 @@ class TestRegisterEndpoint:
         assert request.status_code == status.HTTP_400_BAD_REQUEST
         assert content == {'username': ['This username is already in use.']} or {'email': ['This email is already in use.']}
 
+    def test_register_additional_fields(self):
+        request = self.client.post(
+            path=reverse('cklauth:register'),
+            data=json.dumps({
+                'username': 'username',
+                'email': 'email@email.com',
+                'password': 'password',
+                'first_name': 'CKL',
+                'last_name': 'Auth',
+            }),
+            content_type='application/json'
+        )
+
+        content = json.loads(request.content.decode('utf-8'))
+
+        assert request.status_code == status.HTTP_201_CREATED
+        assert content['message'] == 'Ok.'
+
+        user = User.objects.get(username='username')
+
+        assert Token.objects.filter(user=user).exists() == True
+
+        assert user.first_name == 'CKL'
+        assert user.last_name == 'Auth'

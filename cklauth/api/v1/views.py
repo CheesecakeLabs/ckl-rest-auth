@@ -1,6 +1,7 @@
 import json
-import requests
+from pydoc import locate
 
+import requests
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import PasswordResetForm
@@ -13,7 +14,7 @@ from rest_framework.views import APIView
 
 from cklauth import constants
 from cklauth.models import SocialAccount
-from .serializers import RegisterSerializer, LoginSerializer, PasswordResetSerializer
+from .serializers import get_register_serializer, LoginSerializer, PasswordResetSerializer
 
 
 User = get_user_model()
@@ -21,15 +22,13 @@ User = get_user_model()
 
 @api_view(['POST',])
 def register(request):
-    fields = []
-    for key in request.data.keys():
-        fields.append(key)
-    if 'password' not in fields:
-        return JsonResponse({
-            'password': ['This field is required.']
-        }, status=status.HTTP_400_BAD_REQUEST)
-    serializer = RegisterSerializer(data=request.data, fields=fields)
+    UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
+    RegisterSerializer = get_register_serializer(UserSerializer)
 
+    serializer = RegisterSerializer(
+        data=request.data,
+        fields=settings.CKL_REST_AUTH.get('REGISTER_FIELDS')
+    )
     serializer.is_valid(raise_exception=True)
     serializer.save()
 

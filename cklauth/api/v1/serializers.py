@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework.authtoken.models import Token
 
+
 User = get_user_model()
 
 
@@ -27,7 +28,7 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
                 self.fields.pop(field_name)
 
 
-class RegisterSerializer(DynamicFieldsModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
         validators=[
@@ -46,23 +47,33 @@ class RegisterSerializer(DynamicFieldsModelSerializer):
             )
         ]
     )
-    password = serializers.CharField(
-        required=True
-    )
 
     class Meta:
         model = User
         fields = (
             'username',
             'email',
-            'password'
+            'first_name',
+            'last_name',
         )
 
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        token = Token.objects.create(user=user)
 
-        return user, token
+def get_register_serializer(user_serializer=UserSerializer):
+    class RegisterSerializer(user_serializer, DynamicFieldsModelSerializer):
+        password = serializers.CharField(
+            required=True
+        )
+
+        class Meta(user_serializer.Meta):
+            fields = user_serializer.Meta.fields + ('password', )
+
+        def create(self, validated_data):
+            user = User.objects.create_user(**validated_data)
+            token = Token.objects.create(user=user)
+
+            return user, token
+
+    return RegisterSerializer
 
 
 class LoginSerializer(DynamicFieldsModelSerializer):
@@ -81,4 +92,3 @@ class LoginSerializer(DynamicFieldsModelSerializer):
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-
