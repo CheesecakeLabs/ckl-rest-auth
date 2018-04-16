@@ -66,6 +66,7 @@ Response (depends on REGISTER_FIELDS and USER_SERIALIZER) - 200 OK
   }
 }
 ```
+**Note:** the user payload may vary according to specified REGISTER_FIELDS and USER_SERIALIZER.
 
 `POST /api/v1/register`
 Body (depends on REGISTER_FIELDS and USER_SERIALIZER -- always has a password)
@@ -84,12 +85,12 @@ Response (depends on REGISTER_FIELDS and USER_SERIALIZER) - 201 CREATED
   "user": {
     "id": 1,
     "email": "example@example.com",
-    "password": "secret",
     "first_name": "Example",
     "last_name": "Example"
   }
 }
 ```
+**Note:** the user payload may vary according to specified REGISTER_FIELDS and USER_SERIALIZER.
 
 `POST /api/v1/password-reset/`
 Body

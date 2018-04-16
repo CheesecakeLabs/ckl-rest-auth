@@ -4,6 +4,7 @@ from pydoc import locate
 import requests
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import PasswordResetForm
+from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from rest_framework import status
@@ -21,37 +22,60 @@ User = get_user_model()
 UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
 
 
-@api_view(['POST',])
-def register(request):
-    RegisterSerializer = RegisterSerializerFactory(UserSerializer)
-
-    serializer = RegisterSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    user, token = serializer.save()
-
-    return JsonResponse({
-        'token': token.key,
-        'user': UserSerializer(instance=user).data,
-    }, status=status.HTTP_201_CREATED)
+class AuthError(Exception):
+    def __init__(self, message, status):
+        self.message = message
+        self.status = status
 
 
-@api_view(['POST',])
-def login(request):
-    fields = [settings.CKL_REST_AUTH['LOGIN_FIELD'], 'password']
-    serializer = LoginSerializer(data=request.data, fields=fields)
+class AuthView(APIView):
+    status_code = status.HTTP_200_OK
 
-    serializer.is_valid(raise_exception=True)
-    username = serializer.validated_data[settings.CKL_REST_AUTH['LOGIN_FIELD']]
-    password = serializer.validated_data['password']
-    user = authenticate(username=username, password=password)
-
-    if user:
-        token, _ = Token.objects.get_or_create(user=user)
+    def post(self, request):
+        try:
+            user, token = self.perform_action(request)
+        except AuthError as error:
+            return JsonResponse(
+                {'non_field_errors': [error.message]},
+                status=error.status
+            )
 
         return JsonResponse({
             'token': token.key,
             'user': UserSerializer(instance=user).data,
-        }, status=status.HTTP_200_OK)
+        }, status=self.status_code)
+
+    def perform_action(self, request):
+        raise NotImplementedError('The view should implement `perform_login` method')
+
+
+class RegisterView(AuthView):
+    status_code = status.HTTP_201_CREATED
+
+    def perform_action(self, request):
+        RegisterSerializer = RegisterSerializerFactory(UserSerializer)
+
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.save()
+
+
+class LoginView(AuthView):
+    def perform_action(self, request):
+        fields = [settings.CKL_REST_AUTH['LOGIN_FIELD'], 'password']
+        serializer = LoginSerializer(data=request.data, fields=fields)
+
+        serializer.is_valid(raise_exception=True)
+        login_field = serializer.validated_data[settings.CKL_REST_AUTH['LOGIN_FIELD']]
+        password = serializer.validated_data['password']
+        user = authenticate(username=login_field, password=password)
+
+        if not user:
+            raise AuthError(message='Wrong credentials.', status=status.HTTP_401_UNAUTHORIZED)
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return user, token
+
 
     return JsonResponse({
         'non_field_errors': ['Wrong credentials.']
