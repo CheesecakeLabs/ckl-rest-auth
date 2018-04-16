@@ -110,14 +110,14 @@ Note: it always returns success, even if the provided email is not registered.
 
 ## Social Endpoints
 
-`GET /api/v1/google`
-`GET /api/v1/facebook`
+`GET /api/v1/social/google`
+`GET /api/v1/social/facebook`
 **Note:** this should not be XHR request, the user will be redirected to consent screen. After
 consent, the user is redirected to platform REDIRECT_URI added on settings, where a code is
 extracted from the URL hash.
 
-`POST /api/v1/google`
-`POST /api/v1/facebook`
+`POST /api/v1/social/google`
+`POST /api/v1/social/facebook`
 Body
 ```
 {
