@@ -4,6 +4,7 @@ from pydoc import locate
 import requests
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import PasswordResetForm
+from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from rest_framework import status
@@ -21,41 +22,233 @@ User = get_user_model()
 UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
 
 
-@api_view(['POST',])
-def register(request):
-    RegisterSerializer = RegisterSerializerFactory(UserSerializer)
-
-    serializer = RegisterSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    user, token = serializer.save()
-
-    return JsonResponse({
-        'token': token.key,
-        'user': UserSerializer(instance=user).data,
-    }, status=status.HTTP_201_CREATED)
+class AuthError(Exception):
+    def __init__(self, message, status):
+        self.message = message
+        self.status = status
 
 
-@api_view(['POST',])
-def login(request):
-    fields = [settings.CKL_REST_AUTH['LOGIN_FIELD'], 'password']
-    serializer = LoginSerializer(data=request.data, fields=fields)
+class AuthView(APIView):
+    status_code = status.HTTP_200_OK
 
-    serializer.is_valid(raise_exception=True)
-    username = serializer.validated_data[settings.CKL_REST_AUTH['LOGIN_FIELD']]
-    password = serializer.validated_data['password']
-    user = authenticate(username=username, password=password)
-
-    if user:
-        token, _ = Token.objects.get_or_create(user=user)
+    def post(self, request):
+        try:
+            user, token = self.perform_action(request)
+        except AuthError as error:
+            return JsonResponse(
+                {'non_field_errors': [error.message]},
+                status=error.status
+            )
 
         return JsonResponse({
             'token': token.key,
             'user': UserSerializer(instance=user).data,
-        }, status=status.HTTP_200_OK)
+        }, status=self.status_code)
 
-    return JsonResponse({
-        'non_field_errors': ['Wrong credentials.']
-    }, status=status.HTTP_401_UNAUTHORIZED)
+    def perform_action(self, request):
+        raise NotImplementedError('The view should implement `perform_login` method')
+
+
+class RegisterView(AuthView):
+    status_code = status.HTTP_201_CREATED
+
+    def perform_action(self, request):
+        RegisterSerializer = RegisterSerializerFactory(UserSerializer)
+
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.save()
+
+
+class LoginView(AuthView):
+    def perform_action(self, request):
+        fields = [settings.CKL_REST_AUTH['LOGIN_FIELD'], 'password']
+        serializer = LoginSerializer(data=request.data, fields=fields)
+
+        serializer.is_valid(raise_exception=True)
+        login_field = serializer.validated_data[settings.CKL_REST_AUTH['LOGIN_FIELD']]
+        password = serializer.validated_data['password']
+        user = authenticate(username=login_field, password=password)
+
+        if not user:
+            raise AuthError(message='Wrong credentials.', status=status.HTTP_401_UNAUTHORIZED)
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return user, token
+
+
+class SocialAuthView(AuthView):
+    def __init__(self, *args, **kwargs):
+        platform_settings = settings.CKL_REST_AUTH.get(self.platform, {})
+        if not platform_settings:
+            raise ImproperlyConfigured(
+                'Add {} CLIENT_ID and REDIRECT_URI to settings.'.format(self.platform)
+            )
+
+        self.CLIENT_ID = platform_settings.get('CLIENT_ID')
+        self.CLIENT_SECRET = platform_settings.get('CLIENT_SECRET')
+        self.REDIRECT_URI = platform_settings.get('REDIRECT_URI')
+
+        super().__init__(*args, **kwargs)
+
+    def get_access_token(self, request):
+        if request.data.get('access_token'):
+            return request.data.get('access_token')
+
+        if not request.data.get('code'):
+            raise AuthError(message='Missing auth token.', status=status.HTTP_400_BAD_REQUEST)
+
+        payload = {
+            'client_id': self.CLIENT_ID,
+            'client_secret': self.CLIENT_SECRET,
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.REDIRECT_URI,
+            'code': request.data['code'],
+        }
+
+        response = requests.post(self.token_url, data=payload)
+
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message='Bad token.', status=status.HTTP_400_BAD_REQUEST)
+
+        return response.json()['access_token']
+
+    def get_username(self, username, current_username=None, count=0):
+        if count == 0:
+            current_username = username
+        try:
+            User.objects.get(username=current_username)
+            count = count + 1
+            current_username = '{0}_{1}'.format(
+                username,
+                count
+            )
+            return self.get_username(
+                username=username,
+                current_username=current_username,
+                count=count
+            )
+        except User.DoesNotExist:
+            return current_username
+
+    def create_user(self, user_info):
+        register_info = {
+            register_key: user_info.get(provider_key)
+            for register_key, provider_key in self.user_info_mapping.items()
+        }
+        register_info['username'] = self.get_username(
+            username='{0}_{1}'.format(
+                register_info.get('first_name').lower().replace(" ", "_"),
+                register_info.get('last_name').lower().replace(" ", "_")
+            )
+        )
+
+        serializer = UserSerializer(data=register_info)
+        serializer.is_valid(raise_exception=True)
+
+        return User.objects.create_user(**register_info)
+
+    def perform_action(self, request):
+        access_token = self.get_access_token(request)
+        user_info = self.get_user_info(access_token)
+
+        try:
+            # email registered with social account
+            social_account = SocialAccount.objects.get(user__email=user_info.get('email'))
+            user = social_account.user
+            if not getattr(social_account, self.social_account_field):
+                setattr(social_account, self.social_account_field, user_info.get('id'))
+                social_account.save()
+        except SocialAccount.DoesNotExist:
+            try:
+                # email registered without social account
+                user = User.objects.get(email=user_info.get('email'))
+                raise AuthError(
+                    message='Registered with email.',
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            except User.DoesNotExist:
+                # user and social account don't exist
+                user = self.create_user(user_info)
+
+                SocialAccount.objects.create(**{
+                    'user': user,
+                    self.social_account_field: user_info.get('id')
+                })
+
+                self.status_code = status.HTTP_201_CREATED
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return user, token
+
+
+class GoogleAuthView(SocialAuthView):
+    platform = 'GOOGLE'
+    social_account_field = 'google_id'
+    token_url = constants.GOOGLE_TOKEN_URL
+    user_info_mapping = {
+        'first_name': 'given_name',
+        'last_name': 'family_name',
+        'email': 'email',
+    }
+
+    def get(self, request, format=None):
+        payload = {
+            'response_type': 'code',
+            'client_id': self.CLIENT_ID,
+            'redirect_uri': self.REDIRECT_URI,
+            'scope': (
+                'https://www.googleapis.com/auth/userinfo.profile ',
+                'https://www.googleapis.com/auth/userinfo.email'
+            ),
+            'state': json.dumps(request.query_params),
+        }
+        request = requests.Request('GET', constants.GOOGLE_AUTH_URL, params=payload).prepare()
+        return redirect(request.url)
+
+    def get_user_info(self, access_token):
+        response = requests.get(constants.GOOGLE_USER_URL, headers={
+            'Authorization': 'Bearer %s' % access_token
+        })
+
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message='Cannot get user info', status=tatus.HTTP_401_UNAUTHORIZED)
+
+        return response.json()
+
+
+class FacebookAuthView(SocialAuthView):
+    platform = 'FACEBOOK'
+    social_account_field = 'facebook_id'
+    token_url = constants.FACEBOOK_TOKEN_URL
+    user_info_mapping = {
+        'first_name': 'first_name',
+        'last_name': 'last_name',
+        'email': 'email',
+    }
+
+    def get(self, request, format=None):
+        payload = {
+            'response_type': 'code',
+            'client_id': self.CLIENT_ID,
+            'redirect_uri': self.REDIRECT_URI,
+            'state': json.dumps(request.query_params),
+            'scope': 'email',
+        }
+        request = requests.Request('GET', constants.FACEBOOK_AUTH_URL, params=payload).prepare()
+        return redirect(request.url)
+
+    def get_user_info(self, access_token):
+        response = requests.get(constants.FACEBOOK_USER_URL, headers={
+            'Authorization': 'Bearer %s' % access_token
+        }, params={
+            'fields': {'email,first_name,last_name'}
+        })
+
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message='Cannot get user info.', status=status.HTTP_401_UNAUTHORIZED)
+
+        return response.json()
 
 
 @api_view(['POST',])
@@ -72,214 +265,3 @@ def password_reset(request):
         )
 
     return JsonResponse(request.data, status=status.HTTP_200_OK)
-
-
-class GoogleAuthView(APIView):
-    permission_classes = []
-
-    def get(self, request, format=None):
-        # Check link below to retrieve info wanted
-        # https://developers.google.com/gmail/api/auth/scopes
-        payload = {
-            'response_type': 'code',
-            'client_id': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_ID'),
-            'redirect_uri': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('REDIRECT_URI'),
-            'scope': (
-                'https://www.googleapis.com/auth/userinfo.profile ',
-                'https://www.googleapis.com/auth/userinfo.email'
-            ),
-            'state': json.dumps(request.query_params),
-        }
-        request = requests.Request('GET', constants.GOOGLE_AUTH_URL, params=payload).prepare()
-        return redirect(request.url)
-
-    def post(self, request):
-        if not request.data.get('access_token'):
-            if not request.data.get('code'):
-                return JsonResponse({
-                    'message': 'Missing auth token'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            payload = {
-                'client_id': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_ID'),
-                'client_secret': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('CLIENT_SECRET'),
-                'grant_type': 'authorization_code',
-                'redirect_uri': settings.CKL_REST_AUTH.get('GOOGLE', {}).get('REDIRECT_URI'),
-                'code': request.data['code'],
-            }
-
-            response = requests.post(constants.GOOGLE_TOKEN_URL, data=payload)
-
-            if response.status_code != status.HTTP_200_OK:
-                return JsonResponse({
-                    'message': 'Google bad token'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            access_token = response.json()['access_token']
-        else:
-            access_token = request.data.get('access_token')
-
-        response = requests.get(constants.GOOGLE_USER_URL, headers={
-            'Authorization': 'Bearer %s' % access_token
-        })
-
-        if response.status_code != status.HTTP_200_OK:
-            return JsonResponse({
-                'message': 'Cannot get google info'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-
-        data = response.json()
-
-        try:
-            # email registered with social account
-            social_account = SocialAccount.objects.get(user__email=data.get('email'))
-            user = social_account.user
-            if not social_account.google_id:
-                social_account.google_id = data.get('id')
-                social_account.save()
-        except SocialAccount.DoesNotExist:
-            try:
-                # email registered without social account
-                User.objects.get(email=data.get('email'))
-                return JsonResponse({
-                        'message': 'Registered with email'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            except User.DoesNotExist:
-                # user and social account don't exist
-                username = get_username(
-                    username='{0}_{1}'.format(
-                        data.get('given_name').lower().replace(" ", "_"),
-                        data.get('family_name').lower().replace(" ", "_")
-                    )
-                )
-                user = User.objects.create_user(
-                    username=username,
-                    email=data.get('email'),
-                    first_name=data.get('given_name'),
-                    last_name=data.get('family_name'),
-                )
-                SocialAccount.objects.create(
-                    user=user,
-                    google_id=data.get('id')
-                )
-                token = Token.objects.create(user=user)
-                return JsonResponse({
-                    'token': token.key
-                }, status=status.HTTP_201_CREATED)
-
-        token = Token.objects.get(user=user)
-        return JsonResponse({
-            'token': token.key
-        }, status=status.HTTP_200_OK)
-
-
-# https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow
-class FacebookAuthView(APIView):
-    permission_classes = []
-
-    def get(self, request, format=None):
-        payload = {
-            'response_type': 'code',
-            'client_id': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_ID'),
-            'redirect_uri': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('REDIRECT_URI'),
-            'state': json.dumps(request.query_params),
-            'scope': 'email',
-        }
-        request = requests.Request('GET', constants.FACEBOOK_AUTH_URL, params=payload).prepare()
-        return redirect(request.url)
-
-    def post(self, request):
-        if not request.data.get('access_token'):
-            if not request.data.get('code'):
-                return JsonResponse({
-                    'message': 'Missing auth token'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            payload = {
-                'client_id': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_ID'),
-                'client_secret': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('CLIENT_SECRET'),
-                'grant_type': 'authorization_code',
-                'redirect_uri': settings.CKL_REST_AUTH.get('FACEBOOK', {}).get('REDIRECT_URI'),
-                'code': request.data['code'],
-            }
-
-            response = requests.post(constants.FACEBOOK_TOKEN_URL, data=payload)
-
-            if response.status_code != status.HTTP_200_OK:
-                return JsonResponse({
-                    'message': 'Facebook bad token'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            access_token = response.json()['access_token']
-        else:
-            access_token = request.data.get('access_token')
-
-        response = requests.get(constants.FACEBOOK_USER_URL, headers={
-            'Authorization': 'Bearer %s' % access_token
-        }, params={
-            'fields': {'email,first_name,last_name'}
-        })
-
-        if response.status_code != status.HTTP_200_OK:
-            return JsonResponse({
-                'message': 'Cannot get facebook info'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-
-        data = response.json()
-
-        try:
-            # email registered with social account
-            social_account = SocialAccount.objects.get(user__email=data.get('email'))
-            user = social_account.user
-            if not social_account.facebook_id:
-                social_account.facebook_id = data.get('id')
-                social_account.save()
-        except SocialAccount.DoesNotExist:
-            try:
-                # email registered without social account
-                User.objects.get(email=data.get('email'))
-                return JsonResponse({
-                        'message': 'Registered with email'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            except User.DoesNotExist:
-                # user and social account don't exist
-                username = get_username(
-                    username='{0}_{1}'.format(
-                        data.get('first_name').lower().replace(" ", "_"),
-                        data.get('last_name').lower().replace(" ", "_")
-                    )
-                )
-                user = User.objects.create_user(
-                    username=username,
-                    email=data.get('email'),
-                    first_name=data.get('first_name'),
-                    last_name=data.get('last_name'),
-                )
-                SocialAccount.objects.create(
-                    user=user,
-                    facebook_id=data.get('id')
-                )
-                token = Token.objects.create(user=user)
-                return JsonResponse({
-                    'token': token.key
-                }, status=status.HTTP_201_CREATED)
-
-        token = Token.objects.get(user=user)
-        return JsonResponse({
-            'token': token.key
-        }, status=status.HTTP_200_OK)
-
-
-def get_username(username, current_username=None, count=0):
-    if count == 0:
-        current_username = username
-    try:
-        User.objects.get(username=current_username)
-        count = count + 1
-        current_username = '{0}_{1}'.format(
-            username,
-            count
-        )
-        return get_username(username=username, current_username=current_username, count=count)
-    except User.DoesNotExist:
-        return current_username

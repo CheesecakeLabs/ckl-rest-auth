@@ -66,6 +66,7 @@ Response (depends on REGISTER_FIELDS and USER_SERIALIZER) - 200 OK
   }
 }
 ```
+**Note:** the user payload may vary according to specified REGISTER_FIELDS and USER_SERIALIZER.
 
 `POST /api/v1/register`
 Body (depends on REGISTER_FIELDS and USER_SERIALIZER -- always has a password)
@@ -84,12 +85,12 @@ Response (depends on REGISTER_FIELDS and USER_SERIALIZER) - 201 CREATED
   "user": {
     "id": 1,
     "email": "example@example.com",
-    "password": "secret",
     "first_name": "Example",
     "last_name": "Example"
   }
 }
 ```
+**Note:** the user payload may vary according to specified REGISTER_FIELDS and USER_SERIALIZER.
 
 `POST /api/v1/password-reset/`
 Body
@@ -109,7 +110,33 @@ Note: it always returns success, even if the provided email is not registered.
 
 ## Social Endpoints
 
-TODO
+`GET /api/v1/social/google`
+`GET /api/v1/social/facebook`
+**Note:** this should not be XHR request, the user will be redirected to consent screen. After
+consent, the user is redirected to platform REDIRECT_URI added on settings, where a code is
+extracted from the URL hash.
+
+`POST /api/v1/social/google`
+`POST /api/v1/social/facebook`
+Body
+```
+{
+  "code": "<code from previous step>"
+}
+```
+Response - 200 OK
+```
+{
+  "token": "supersecret",
+  "user": {
+    "id": 1,
+    "email": "example@example.com",
+    "first_name": "Example",
+    "last_name": "Example"
+  }
+}
+```
+**Note:** the user payload may vary according to specified REGISTER_FIELDS and USER_SERIALIZER.
 
 ## Contributing
 
