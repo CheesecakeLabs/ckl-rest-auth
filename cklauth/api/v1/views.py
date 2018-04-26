@@ -91,9 +91,9 @@ class SocialAuthView(AuthView):
 
         super().__init__(*args, **kwargs)
 
-    # Must always raise when overriden
-    def raise_auth_error(self, response):
-        raise AuthError(message='Bad token.', status=status.HTTP_400_BAD_REQUEST)
+    def validate_response(self, response):
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message='Bad token.', status=status.HTTP_400_BAD_REQUEST)
 
     def get_access_token(self, request):
         if request.data.get('access_token'):
@@ -112,8 +112,7 @@ class SocialAuthView(AuthView):
 
         response = requests.post(self.token_url, data=payload)
 
-        if response.status_code != status.HTTP_200_OK:
-            self.raise_auth_error(response)
+        self.validate_response(response)
 
         return response.json()['access_token']
 
@@ -220,9 +219,9 @@ class GoogleAuthView(SocialAuthView):
 
         return response.json()
 
-    def raise_auth_error(self, response):
-        raise AuthError(message=response.json(), status=response.status_code)
-
+    def validate_response(self, response):
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message=response.json(), status=response.status_code)
 
 
 class FacebookAuthView(SocialAuthView):
