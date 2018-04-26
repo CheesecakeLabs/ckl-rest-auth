@@ -91,6 +91,10 @@ class SocialAuthView(AuthView):
 
         super().__init__(*args, **kwargs)
 
+    def validate_response(self, response):
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message='Bad token.', status=status.HTTP_400_BAD_REQUEST)
+
     def get_access_token(self, request):
         if request.data.get('access_token'):
             return request.data.get('access_token')
@@ -108,8 +112,7 @@ class SocialAuthView(AuthView):
 
         response = requests.post(self.token_url, data=payload)
 
-        if response.status_code != status.HTTP_200_OK:
-            raise AuthError(message='Bad token.', status=status.HTTP_400_BAD_REQUEST)
+        self.validate_response(response)
 
         return response.json()['access_token']
 
@@ -212,9 +215,13 @@ class GoogleAuthView(SocialAuthView):
         })
 
         if response.status_code != status.HTTP_200_OK:
-            raise AuthError(message='Cannot get user info', status=tatus.HTTP_401_UNAUTHORIZED)
+            raise AuthError(message='Cannot get user info', status=status.HTTP_401_UNAUTHORIZED)
 
         return response.json()
+
+    def validate_response(self, response):
+        if response.status_code != status.HTTP_200_OK:
+            raise AuthError(message=response.json(), status=response.status_code)
 
 
 class FacebookAuthView(SocialAuthView):
