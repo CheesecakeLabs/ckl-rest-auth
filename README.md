@@ -153,5 +153,6 @@ pip install -e cklauth
 
 * Run the tests
 ```
-python -m pytest testapp
+python -m pytest test_default_user
+python -m pytest test_custom_user
 ```
