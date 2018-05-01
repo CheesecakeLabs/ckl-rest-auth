@@ -90,6 +90,8 @@ class SocialAuthView(AuthView):
         self.CLIENT_ID = platform_settings.get('CLIENT_ID')
         self.CLIENT_SECRET = platform_settings.get('CLIENT_SECRET')
         self.REDIRECT_URI = platform_settings.get('REDIRECT_URI')
+        self.USER_INFO_MAPPING = platform_settings.get('USER_INFO_MAPPING')
+        self.AUTH_FIELD_GENERATOR = platform_settings.get('AUTH_FIELD_GENERATOR')
 
         super().__init__(*args, **kwargs)
 
@@ -118,41 +120,25 @@ class SocialAuthView(AuthView):
 
         return response.json()['access_token']
 
-    def get_username(self, username, current_username=None, count=0):
-        if count == 0:
-            current_username = username
-        try:
-            User.objects.get(username=current_username)
-            count = count + 1
-            current_username = '{0}_{1}'.format(
-                username,
-                count
-            )
-            return self.get_username(
-                username=username,
-                current_username=current_username,
-                count=count
-            )
-        except User.DoesNotExist:
-            return current_username
-
     def create_user(self, user_info):
         register_info = {
-            register_key: user_info.get(provider_key)
-            for register_key, provider_key in self.user_info_mapping.items()
-        }
-        register_info['username'] = self.get_username(
-            username='{0}_{1}'.format(
-                register_info.get('first_name').lower().replace(" ", "_"),
-                register_info.get('last_name').lower().replace(" ", "_")
+            register_key: (
+                provider_key(user_info)
+                if callable(provider_key)
+                else user_info.get(provider_key)
             )
-        )
+            for register_key, provider_key in self.USER_INFO_MAPPING.items()
+        }
+
+        if self.AUTH_FIELD_GENERATOR:
+            auth_field_genertor = locate(self.AUTH_FIELD_GENERATOR)
+            register_info[User.USERNAME_FIELD] = auth_field_genertor(register_info)
 
         UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         serializer = UserSerializer(data=register_info)
         serializer.is_valid(raise_exception=True)
 
-        return User.objects.create_user(**register_info)
+        return User.objects.create_user(**serializer.data)
 
     def perform_action(self, request):
         access_token = self.get_access_token(request)
@@ -192,11 +178,6 @@ class GoogleAuthView(SocialAuthView):
     platform = 'GOOGLE'
     social_account_field = 'google_id'
     token_url = constants.GOOGLE_TOKEN_URL
-    user_info_mapping = {
-        'first_name': 'given_name',
-        'last_name': 'family_name',
-        'email': 'email',
-    }
 
     def get(self, request, format=None):
         payload = {
@@ -231,11 +212,6 @@ class FacebookAuthView(SocialAuthView):
     platform = 'FACEBOOK'
     social_account_field = 'facebook_id'
     token_url = constants.FACEBOOK_TOKEN_URL
-    user_info_mapping = {
-        'first_name': 'first_name',
-        'last_name': 'last_name',
-        'email': 'email',
-    }
 
     def get(self, request, format=None):
         payload = {

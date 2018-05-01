@@ -17,7 +17,7 @@ User = get_user_model()
 
 def create_token():
     user = User.objects.create_user(
-        email='user@test.com',
+        email='user@email.com',
         password='secret',
         full_name='Test Tester',
     )
@@ -46,7 +46,7 @@ def mock_facebook_get(mocker):
             return MockResponse(
                 {
                     'name': 'Test Tester',
-                    'email': 'user@test.com',
+                    'email': 'user@email.com',
                     'first_name': 'test',
                     'last_name': 'tester',
                     'id': '2024821427134319'
