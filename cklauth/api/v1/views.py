@@ -120,7 +120,7 @@ class SocialAuthView(AuthView):
 
         return response.json()['access_token']
 
-    def create_user(self, user_info):
+    def create_user(self, user_info, extra_fields={}):
         register_info = {
             register_key: (
                 provider_key(user_info)
@@ -133,6 +133,8 @@ class SocialAuthView(AuthView):
         if self.AUTH_FIELD_GENERATOR:
             auth_field_genertor = locate(self.AUTH_FIELD_GENERATOR)
             register_info[User.USERNAME_FIELD] = auth_field_genertor(register_info)
+
+        register_info.update(extra_fields)
 
         UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         serializer = UserSerializer(data=register_info)
@@ -161,7 +163,9 @@ class SocialAuthView(AuthView):
                 )
             except User.DoesNotExist:
                 # user and social account don't exist
-                user = self.create_user(user_info)
+                extra_fields = {key: value for key, value in request.data.items()}
+                del extra_fields['code']
+                user = self.create_user(user_info, extra_fields)
 
                 SocialAccount.objects.create(**{
                     'user': user,
