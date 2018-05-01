@@ -10,7 +10,8 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
 from cklauth import constants
@@ -29,6 +30,7 @@ class AuthError(Exception):
 
 class AuthView(APIView):
     status_code = status.HTTP_200_OK
+    permission_classes = (AllowAny, )
 
     def post(self, request):
         try:
@@ -242,6 +244,7 @@ class FacebookAuthView(SocialAuthView):
 
 
 @api_view(['POST',])
+@permission_classes((AllowAny, ))
 def password_reset(request):
     serializer = PasswordResetSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
