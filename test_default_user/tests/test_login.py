@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 User = get_user_model()
 
 
-def create_user(alias=''):
+def create_user(alias='1'):
     username = 'test-{}'.format(alias)
     email = 'email-{}@test.com'.format(alias)
     password = 'secret'
@@ -26,12 +26,41 @@ def create_user(alias=''):
 
 
 @pytest.mark.django_db()
-def test_login_successful(client):
+def test_login_successful(client, settings):
     user, user_fields = create_user()
 
     request = client.post(
         path=reverse('cklauth:login'),
-        data=json.dumps(user_fields),
+        data=json.dumps({
+            'username': user_fields['username'],
+            'password': user_fields['password'],
+        }),
+        content_type='application/json'
+    )
+
+    content = json.loads(request.content.decode('utf-8'))
+
+    assert request.status_code == status.HTTP_200_OK
+    assert content['token'] == Token.objects.get(user=user).key
+    assert content['user']['id'] == user.id
+
+
+@pytest.mark.django_db()
+def test_login_successful_different_login_field(client, settings):
+    setattr(settings, 'CKL_REST_AUTH', {
+        **settings.CKL_REST_AUTH,
+        'LOGIN_FIELD': 'email',
+    })
+    setattr(settings, 'AUTHENTICATION_BACKENDS', ['cklauth.auth.EmailOrUsernameModelBackend'])
+
+    user, user_fields = create_user()
+
+    request = client.post(
+        path=reverse('cklauth:login'),
+        data=json.dumps({
+            'email': user_fields['email'],
+            'password': user_fields['password'],
+        }),
         content_type='application/json'
     )
 
@@ -48,7 +77,6 @@ def test_login_invalid_payload(client):
         path=reverse('cklauth:login'),
         data=json.dumps({
             'username': 'username',
-            'email': 'email@ckl.io'
         }),
         content_type='application/json'
     )

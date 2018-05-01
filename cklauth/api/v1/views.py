@@ -2,6 +2,7 @@ import json
 from pydoc import locate
 
 import requests
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import PasswordResetForm
 from django.core.exceptions import ImproperlyConfigured
@@ -12,14 +13,12 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
-import cklauth.app_settings as settings
 from cklauth import constants
 from cklauth.models import SocialAccount
 from .serializers import RegisterSerializerFactory, LoginSerializer, PasswordResetSerializer
 
 
 User = get_user_model()
-UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
 
 
 class AuthError(Exception):
@@ -40,6 +39,7 @@ class AuthView(APIView):
                 status=error.status
             )
 
+        UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         return JsonResponse({
             'token': token.key,
             'user': UserSerializer(instance=user).data,
@@ -53,10 +53,12 @@ class RegisterView(AuthView):
     status_code = status.HTTP_201_CREATED
 
     def perform_action(self, request):
+        UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         RegisterSerializer = RegisterSerializerFactory(UserSerializer)
 
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         return serializer.save()
 
 
@@ -146,6 +148,7 @@ class SocialAuthView(AuthView):
             )
         )
 
+        UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         serializer = UserSerializer(data=register_info)
         serializer.is_valid(raise_exception=True)
 

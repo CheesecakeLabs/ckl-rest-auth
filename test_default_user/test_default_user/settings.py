@@ -130,7 +130,7 @@ STATIC_URL = '/static/'
 CKL_REST_AUTH = {
     'LOGIN_FIELD': 'username',
     'FROM_EMAIL': 'default@email.com',
-    'REGISTER_FIELDS': ('username', 'email', 'first_name', 'last_name'),
+    'REGISTER_FIELDS': ('username', 'email',),
     # Google settings
     'GOOGLE': {
         'CLIENT_ID': 'insert-your-key',
