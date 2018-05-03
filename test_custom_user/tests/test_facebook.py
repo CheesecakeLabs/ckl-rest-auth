@@ -109,9 +109,15 @@ def test_register_with_facebook_additional_fields(client, settings, mock_faceboo
 
     payload = {
         'code': '4/bmqYo8h-LqR_ahQNrFM9w6QjiiacFVdiRaebGt-TR1A#',
-        'ssn': '1234567890',
+        'user_extra_fields': {
+            'ssn': '1234567890',
+        }
     }
-    request = client.post(path=reverse('cklauth:facebook'), data=payload)
+    request = client.post(
+        reverse('cklauth:facebook'),
+        data=json.dumps(payload),
+        content_type='application/json'
+    )
 
     content = json.loads(request.content.decode('utf-8'))
 

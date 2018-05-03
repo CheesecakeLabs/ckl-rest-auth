@@ -163,8 +163,7 @@ class SocialAuthView(AuthView):
                 )
             except User.DoesNotExist:
                 # user and social account don't exist
-                extra_fields = {key: value for key, value in request.data.items()}
-                del extra_fields['code']
+                extra_fields = request.data.get('user_extra_fields', {})
                 user = self.create_user(user_info, extra_fields)
 
                 SocialAccount.objects.create(**{

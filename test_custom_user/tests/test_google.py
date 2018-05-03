@@ -118,6 +118,41 @@ def test_register_with_google(client, mock_google_post, mock_google_get):
 
 
 @pytest.mark.django_db
+def test_register_with_google_additional_fields(client, settings, mock_google_post,
+                                                mock_google_get):
+    setattr(settings, 'CKL_REST_AUTH', {
+        **settings.CKL_REST_AUTH,
+        'REGISTER_FIELDS': ('email', 'full_name', 'ssn'),
+    })
+    # Reload serializers to make sure the updated settings are applied
+    import cklauth.api.v1.serializers
+    from imp import reload
+    reload(cklauth.api.v1.serializers)
+
+    payload = {
+        'code': '4/bmqYo8h-LqR_ahQNrFM9w6QjiiacFVdiRaebGt-TR1A#',
+        'user_extra_fields': {
+            'ssn': '1234567890',
+        }
+    }
+
+    request = client.post(
+        reverse('cklauth:google'),
+        data=json.dumps(payload),
+        content_type='application/json'
+    )
+
+    content = json.loads(request.content.decode('utf-8'))
+
+    user = User.objects.first()
+    token = Token.objects.get(user=user)
+
+    assert request.status_code == status.HTTP_201_CREATED
+    assert content['token'] == token.key
+    assert user.ssn == '1234567890'
+
+
+@pytest.mark.django_db
 def test_login_with_google(client, mock_google_post, mock_google_get):
     token = create_token()
 
