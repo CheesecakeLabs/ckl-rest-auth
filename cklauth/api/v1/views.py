@@ -131,8 +131,8 @@ class SocialAuthView(AuthView):
         }
 
         if self.AUTH_FIELD_GENERATOR:
-            auth_field_genertor = locate(self.AUTH_FIELD_GENERATOR)
-            register_info[User.USERNAME_FIELD] = auth_field_genertor(register_info)
+            auth_field_generator = locate(self.AUTH_FIELD_GENERATOR)
+            register_info[User.USERNAME_FIELD] = auth_field_generator(register_info)
 
         UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         serializer = UserSerializer(data=register_info)
