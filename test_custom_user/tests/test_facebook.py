@@ -93,6 +93,7 @@ def test_register_with_facebook(client, mock_facebook_post, mock_facebook_get):
 
     assert request.status_code == status.HTTP_201_CREATED
     assert content['token'] == token.key
+    assert user.full_name == 'test tester'
 
 
 @pytest.mark.django_db
@@ -127,6 +128,7 @@ def test_register_with_facebook_additional_fields(client, settings, mock_faceboo
     assert request.status_code == status.HTTP_201_CREATED
     assert content['token'] == token.key
     assert user.ssn == '1234567890'
+    assert user.full_name == 'test tester'
 
 
 @pytest.mark.django_db

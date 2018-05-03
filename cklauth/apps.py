@@ -31,6 +31,6 @@ class AuthConfig(AppConfig):
                     'last_name': 'last_name',
                     'email': 'email',
                 },
-                **settings.CKL_REST_AUTH.get('GOOGLE', {}),
+                **settings.CKL_REST_AUTH.get('FACEBOOK', {}),
             }
         })
