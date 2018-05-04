@@ -17,7 +17,7 @@ User = get_user_model()
 
 def create_token():
     user = User.objects.create_user(
-        email='user@test.com',
+        email='user@email.com',
         password='secret',
         full_name='Test Tester',
     )
@@ -46,7 +46,7 @@ def mock_facebook_get(mocker):
             return MockResponse(
                 {
                     'name': 'Test Tester',
-                    'email': 'user@test.com',
+                    'email': 'user@email.com',
                     'first_name': 'test',
                     'last_name': 'tester',
                     'id': '2024821427134319'
@@ -93,6 +93,42 @@ def test_register_with_facebook(client, mock_facebook_post, mock_facebook_get):
 
     assert request.status_code == status.HTTP_201_CREATED
     assert content['token'] == token.key
+    assert user.full_name == 'test tester'
+
+
+@pytest.mark.django_db
+def test_register_with_facebook_additional_fields(client, settings, mock_facebook_post,
+                                                  mock_facebook_get):
+    setattr(settings, 'CKL_REST_AUTH', {
+        **settings.CKL_REST_AUTH,
+        'REGISTER_FIELDS': ('email', 'full_name', 'ssn'),
+    })
+    # Reload serializers to make sure the updated settings are applied
+    import cklauth.api.v1.serializers
+    from imp import reload
+    reload(cklauth.api.v1.serializers)
+
+    payload = {
+        'code': '4/bmqYo8h-LqR_ahQNrFM9w6QjiiacFVdiRaebGt-TR1A#',
+        'user_extra_fields': {
+            'ssn': '1234567890',
+        }
+    }
+    request = client.post(
+        reverse('cklauth:facebook'),
+        data=json.dumps(payload),
+        content_type='application/json'
+    )
+
+    content = json.loads(request.content.decode('utf-8'))
+
+    user = User.objects.first()
+    token = Token.objects.get(user=user)
+
+    assert request.status_code == status.HTTP_201_CREATED
+    assert content['token'] == token.key
+    assert user.ssn == '1234567890'
+    assert user.full_name == 'test tester'
 
 
 @pytest.mark.django_db

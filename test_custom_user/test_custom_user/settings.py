@@ -142,11 +142,27 @@ CKL_REST_AUTH = {
         'CLIENT_ID': 'insert-your-key',
         'CLIENT_SECRET': 'insert-your-key',
         'REDIRECT_URI': 'insert-your-uri',
+        'AUTH_FIELD_GENERATOR': None,
+        'USER_INFO_MAPPING': {
+            'email': 'email',
+            'full_name': lambda info: '{} {}'.format(
+                info.get('given_name'),
+                info.get('family_name')
+            ),
+        },
     },
     # Facebook settings
     'FACEBOOK': {
         'CLIENT_ID': 'insert-your-key',
         'CLIENT_SECRET': 'insert-your-key',
         'REDIRECT_URI': 'insert-your-uri',
+        'AUTH_FIELD_GENERATOR': None,
+        'USER_INFO_MAPPING': {
+            'email': 'email',
+            'full_name': lambda info: '{} {}'.format(
+                info.get('first_name'),
+                info.get('last_name')
+            ),
+        },
     },
 }
