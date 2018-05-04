@@ -158,11 +158,11 @@ CKL_REST_AUTH = {
         'REDIRECT_URI': 'insert-your-uri',
         'AUTH_FIELD_GENERATOR': None,
         'USER_INFO_MAPPING': {
+            'email': 'email',
             'full_name': lambda info: '{} {}'.format(
                 info.get('first_name'),
                 info.get('last_name')
             ),
-            'email': 'email',
         },
     },
 }

@@ -10,7 +10,8 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
 from cklauth import constants
@@ -29,6 +30,7 @@ class AuthError(Exception):
 
 class AuthView(APIView):
     status_code = status.HTTP_200_OK
+    permission_classes = (AllowAny, )
 
     def post(self, request):
         try:
@@ -120,7 +122,7 @@ class SocialAuthView(AuthView):
 
         return response.json()['access_token']
 
-    def create_user(self, user_info):
+    def create_user(self, user_info, extra_fields={}):
         register_info = {
             register_key: (
                 provider_key(user_info)
@@ -133,6 +135,8 @@ class SocialAuthView(AuthView):
         if self.AUTH_FIELD_GENERATOR:
             auth_field_generator = locate(self.AUTH_FIELD_GENERATOR)
             register_info[User.USERNAME_FIELD] = auth_field_generator(register_info)
+
+        register_info.update(extra_fields)
 
         UserSerializer = locate(settings.CKL_REST_AUTH.get('USER_SERIALIZER'))
         serializer = UserSerializer(data=register_info)
@@ -161,7 +165,8 @@ class SocialAuthView(AuthView):
                 )
             except User.DoesNotExist:
                 # user and social account don't exist
-                user = self.create_user(user_info)
+                extra_fields = request.data.get('user_extra_fields', {})
+                user = self.create_user(user_info, extra_fields)
 
                 SocialAccount.objects.create(**{
                     'user': user,
@@ -238,6 +243,7 @@ class FacebookAuthView(SocialAuthView):
 
 
 @api_view(['POST',])
+@permission_classes((AllowAny, ))
 def password_reset(request):
     serializer = PasswordResetSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
