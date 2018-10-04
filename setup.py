@@ -19,10 +19,10 @@ setup(
     author='Cheesecake Labs',
 
     install_requires=[
-        'Django == 2.0',
-        'djangorestframework == 3.7.3',
-        'django-cors-headers==2.1.0',
-        'requests==2.18.4'
+        'Django >= 2.0',
+        'djangorestframework >= 3.7.3',
+        'django-cors-headers >= 2.1.0',
+        'requests >= 2.18.4'
     ],
 
     classifiers=[
