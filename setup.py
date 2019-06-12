@@ -19,22 +19,21 @@ setup(
     author='Cheesecake Labs',
 
     install_requires=[
-        'Django >= 2.0',
-        'djangorestframework >= 3.7.3',
-        'django-cors-headers >= 2.1.0',
-        'requests >= 2.18.4'
+        'Django >= 2.1',
+        'djangorestframework >= 3.9',
+        'django-cors-headers >= 3.0',
+        'requests >= 2.18'
     ],
 
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Framework :: Django :: 2.0',
+        'Framework :: Django :: 2.1',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],

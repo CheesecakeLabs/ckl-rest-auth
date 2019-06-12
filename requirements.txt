@@ -1,19 +1,19 @@
 # Django
-Django==2.0
-django-cors-headers==2.1.0
+Django==2.2.2
+django-cors-headers==3.0.2
 
 # DRF
-djangorestframework==3.7.3
+djangorestframework==3.9.4
 
 # Testing
-pytest==3.3.1
-pytest-django==3.1.2
-mock==2.0.0
-pytest-mock==1.9.0
+pytest==4.6.3
+pytest-django==3.5.0
+mock==3.0.5
+pytest-mock==1.10.4
 
 # Distribution
-twine==1.11.0
-wheel==0.31.0
+twine==1.13.0
+wheel==0.33.4
 
 # Misc
-requests==2.18.4
+requests==2.22.0
