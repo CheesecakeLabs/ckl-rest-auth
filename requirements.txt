@@ -3,7 +3,7 @@ Django==2.2.2
 django-cors-headers==3.0.2
 
 # DRF
-djangorestframework==3.9.4
+djangorestframework==3.11.2
 
 # Testing
 pytest==4.6.3
