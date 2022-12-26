@@ -13,7 +13,7 @@ pytest-mock==1.10.4
 
 # Distribution
 twine==1.13.0
-wheel==0.33.4
+wheel==0.38.1
 
 # Misc
 requests==2.22.0
